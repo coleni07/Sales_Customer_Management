@@ -118,3 +118,6 @@ in the sidebar to see the second screen.
   controller → view → route pattern used for Dashboard and Sales Orders.
 - Add a `SalesOrderRequest` form request + a create/edit form if you need to
   manage orders through the UI instead of just the seeder.
+
+# Sales_Customer_Management
+55b731aacc1165a2cb054fd2e88f7ec42b03be38
