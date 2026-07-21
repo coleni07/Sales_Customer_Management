@@ -126,7 +126,7 @@
 
                     <a href="{{ route('support.feedback.create', $ticket) }}"
                        class="block text-center bg-brand hover:bg-brand-dark transition text-white font-semibold rounded-full px-6 py-2.5 text-sm">
-                        Answer Feedback
+                        Answer Invoice
                     </a>
                 </div>
             @endforeach
