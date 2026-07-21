@@ -1,8 +1,6 @@
 @extends('layouts.app')
 @php $pageTitle = 'Feedback'; @endphp
 
-// Ian Estampa
-
 @section('content')
 
     <div class="max-w-2xl mx-auto bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
