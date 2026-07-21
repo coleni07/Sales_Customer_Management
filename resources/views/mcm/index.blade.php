@@ -1,4 +1,4 @@
-@extends('layouts.app') Alliah 3:14pm
+@extends('layouts.app')
 
 @php $pageTitle = 'Marketing Campaign Management'; @endphp
 
