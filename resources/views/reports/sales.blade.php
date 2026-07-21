@@ -10,13 +10,6 @@
 
 @section('content')
 
-<div class="topbar">
-    <h2>Sales Report</h2>
-    <div class="topbar-actions">
-        <button type="button" class="export-btn" onclick="openExportModal()">⬇ Export</button>
-    </div>
-</div>
-
 {{-- KPI ROW --}}
 <div class="kpi-row">
     <div class="card kpi-clickable accent-total" onclick="openKpiModal('total')">
