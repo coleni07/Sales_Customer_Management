@@ -76,7 +76,7 @@
             </div>
 
             <div class="flex justify-between items-center mt-4 text-sm text-gray-500">
-                <span>Showing 1 to {{ $tickets->count() }} of {{ $tickets->count() }} entries</span>
+                <span>Showing 1 to {{ $tickets->count() }} out of {{ $tickets->count() }} entries</span>
             </div>
         </div>
 
