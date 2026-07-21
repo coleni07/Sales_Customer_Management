@@ -6,7 +6,7 @@
 <div x-data="salesOrderPanel({{ $selectedOrder?->toJson() ?? 'null' }})" class="space-y-6">
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
-
+        
         <div class="lg:col-span-2 space-y-4">
 
             <!-- Order Status Tracking -->
