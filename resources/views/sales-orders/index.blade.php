@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.app') Buella, Nicole 2:39
 
 @php $pageTitle = 'Sales Order'; @endphp
 
