@@ -76,7 +76,7 @@
             </div>
 
             <div class="flex justify-between items-center mt-4 text-sm text-gray-500">
-                <span>Showing 1 to {{ $tickets->count() }} of {{ $tickets->count() }} entries</span>
+                <span>Showing 1 to {{ $tickets->count() }} out of {{ $tickets->count() }} entries</span>
             </div>
         </div>
 
@@ -126,7 +126,7 @@
 
                     <a href="{{ route('support.feedback.create', $ticket) }}"
                        class="block text-center bg-brand hover:bg-brand-dark transition text-white font-semibold rounded-full px-6 py-2.5 text-sm">
-                        Answer Feedback
+                        Answer Invoice
                     </a>
                 </div>
             @endforeach

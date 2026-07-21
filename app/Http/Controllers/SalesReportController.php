@@ -16,10 +16,15 @@ use App\Models\Sale;
 class SalesReportController extends Controller
 {
     /**
-     * Sums sales per calendar day within a range in ONE query, returned as
-     * ['Y-m-d' => total]. Used as the raw material for day/week/month bucketing
-     * below, so we only hit the database once per range instead of once per bucket.
+     * Get the current date anchored to the latest sale in the database.
+     * This ensures the dashboard always displays data regardless of when it was seeded.
      */
+    private function getNow(): Carbon
+    {
+        $latestSale = Sale::max('sale_date');
+        return $latestSale ? Carbon::parse($latestSale)->endOfDay() : Carbon::now();
+    }
+
     private function dailyTotals(Carbon $start, Carbon $end): array
     {
         return Sale::whereBetween('sale_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
@@ -30,10 +35,6 @@ class SalesReportController extends Controller
             ->all();
     }
 
-    /**
-     * Groups a daily-totals array (from dailyTotals()) into day/week/month buckets,
-     * filling gaps with 0 so the chart never has a missing data point.
-     */
     private function bucketTotals(array $daily, Carbon $start, Carbon $end, string $unit, string $labelFormat): array
     {
         $labels = [];
@@ -73,14 +74,9 @@ class SalesReportController extends Controller
         return ['labels' => $labels, 'values' => $values];
     }
 
-    /**
-     * Average month-over-month growth rate from the last 3 complete months of sales.
-     * A simple trend projection — good enough for a dashboard forecast, not a
-     * substitute for real statistical forecasting.
-     */
     private function monthlyGrowthRate(): float
     {
-        $now = Carbon::now();
+        $now = $this->getNow();
         $totals = [];
         for ($i = 3; $i >= 1; $i--) {
             $start = $now->copy()->subMonths($i)->startOfMonth();
@@ -95,18 +91,13 @@ class SalesReportController extends Controller
             }
         }
 
-        return $rates ? array_sum($rates) / count($rates) : 0.05; // fallback: assume 5% if not enough history
+        return $rates ? array_sum($rates) / count($rates) : 0.05; 
     }
 
-    /**
-     * Real Revenue Overview chart data for all 4 time ranges (7D/30D/3M/6M),
-     * each with its own actual/previous-period/forecast series — queried from
-     * the sales table instead of generated.
-     */
     private function buildRevenueChart(): array
     {
         $growthRate = $this->monthlyGrowthRate();
-        $now = Carbon::now();
+        $now = $this->getNow();
 
         $configs = [
             '7D'  => ['days' => 7,   'unit' => 'day',   'labelFmt' => 'M j', 'stepGrowth' => $growthRate / 30],
@@ -130,7 +121,6 @@ class SalesReportController extends Controller
             $labels = $current['labels'];
             $previousValues = array_slice(array_pad($previous['values'], count($actual), 0), 0, count($actual));
 
-            // Forecast tail: 2 points continuing from the last actual value
             $forecastLabels = [];
             $forecastValues = [end($actual) ?: 0];
             $stepDate = $end->copy();
@@ -164,29 +154,18 @@ class SalesReportController extends Controller
         return $ranges;
     }
 
-    /**
-     * Central place for the report data.
-     * Later, swap this out for real queries/models — nothing else needs to change.
-     */
-    /**
-     * Category colors — reused across the Total Sales breakdown AND the Product
-     * report's bar chart, so category = color means the same thing everywhere on the page.
-     */
     private function categoryColors(): array
     {
         return [
-            'Audio'       => '#14B8A6', // teal
-            'Power'       => '#3B82F6', // blue
-            'Accessories' => '#F5B301', // gold
+            'Audio'       => '#14B8A6',
+            'Power'       => '#3B82F6',
+            'Accessories' => '#F5B301',
         ];
     }
 
-    /**
-     * Real 14-day per-region trend for the Regional Sales Comparison chart.
-     */
     private function buildRegionalDailyTrend(): array
     {
-        $now = Carbon::now();
+        $now = $this->getNow();
         $days = 14;
         $start = $now->copy()->subDays($days - 1);
 
@@ -230,32 +209,32 @@ class SalesReportController extends Controller
     private function getData(): array
     {
         $categoryColors = $this->categoryColors();
-        $now = Carbon::now();
+        $now = $this->getNow();
         $monthStart = $now->copy()->startOfMonth();
         $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
         $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
         $daysElapsed = $now->day;
 
-        // ===== Total Sales (current month-to-date) =====
+        // Total Sales
         $totalValue = (float) Sale::whereBetween('sale_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])->sum('amount');
         $totalTarget = (float) Region::sum('monthly_target');
-
-        // Fair comparison: same number of days into last month, not the whole month
+        
         $lastMonthSamePeriod = (float) Sale::whereBetween('sale_date', [
             $lastMonthStart->format('Y-m-d'),
             $lastMonthStart->copy()->addDays($daysElapsed - 1)->format('Y-m-d'),
         ])->sum('amount');
+        
         $change = $lastMonthSamePeriod > 0 ? round((($totalValue - $lastMonthSamePeriod) / $lastMonthSamePeriod) * 100, 1) : 0;
         $percent = $totalTarget > 0 ? round(($totalValue / $totalTarget) * 100) : 0;
 
-        // ===== Category breakdown (Total Sales card) =====
+        // Category breakdown
         $breakdownRaw = Sale::join('products', 'sales.product_id', '=', 'products.id')
             ->whereBetween('sale_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
             ->selectRaw('products.category as category, SUM(sales.amount) as total')
             ->groupBy('products.category')
             ->pluck('total', 'category');
+        
         $breakdownSum = $breakdownRaw->sum();
-
         $breakdown = $breakdownRaw->map(function ($value, $category) use ($breakdownSum, $categoryColors) {
             return [
                 'category' => $category,
@@ -265,12 +244,12 @@ class SalesReportController extends Controller
             ];
         })->sortByDesc('value')->values();
 
-        // ===== Forecast (simple trend projection) =====
+        // Forecast 
         $growthRate = $this->monthlyGrowthRate();
         $lastCompleteMonthTotal = (float) Sale::whereBetween('sale_date', [$lastMonthStart->format('Y-m-d'), $lastMonthEnd->format('Y-m-d')])->sum('amount');
         $forecastValue = round($lastCompleteMonthTotal * (1 + $growthRate));
 
-        // ===== Products =====
+        // Products
         $monthFilter = fn ($q) => $q->whereBetween('sale_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')]);
 
         $products = Product::withSum(['sales as actual' => $monthFilter], 'amount')
@@ -290,7 +269,7 @@ class SalesReportController extends Controller
             ->sortByDesc('actual')
             ->values();
 
-        // ===== Regions =====
+        // Regions
         $regions = Region::withSum(['sales as sales' => $monthFilter], 'amount')
             ->get()
             ->map(function ($r) {
@@ -305,7 +284,7 @@ class SalesReportController extends Controller
                 ];
             });
 
-        // ===== Representatives =====
+        // Representatives
         $lastMonthFilter = fn ($q) => $q->whereBetween('sale_date', [$lastMonthStart->format('Y-m-d'), $lastMonthEnd->format('Y-m-d')]);
 
         $reps = Representative::with('region')
@@ -360,24 +339,12 @@ class SalesReportController extends Controller
         return view('reports.sales', $this->getData());
     }
 
-    /**
-     * Still used for stock level only — there's no real inventory table yet,
-     * so this stays simulated (seeded on name so it's stable across reloads).
-     */
     private function seededInt(string $seed, int $min, int $max): int
     {
         mt_srand(crc32($seed));
         return mt_rand($min, $max);
     }
 
-    /**
-     * These query helpers answer the "how does X relate to Y" cross-report questions
-     * (a product's regional split, a rep's product mix, etc.) directly from the sales
-     * table, now that real relational data exists. They use ALL sales history (not just
-     * month-to-date) since these are meant to show overall patterns/profile, not a
-     * single month's snapshot — with only a few days into the current month, month-to-date
-     * cross-breakdowns would be too sparse to be meaningful.
-     */
     private function productRegionSplit(int $productId, Collection $regions): array
     {
         $totals = Sale::where('product_id', $productId)
@@ -408,7 +375,7 @@ class SalesReportController extends Controller
 
     private function productMonthlyTrend(int $productId, int $months = 6): array
     {
-        $now = Carbon::now();
+        $now = $this->getNow();
         $values = [];
         for ($i = $months - 1; $i >= 0; $i--) {
             $start = $now->copy()->subMonths($i)->startOfMonth();
@@ -466,7 +433,7 @@ class SalesReportController extends Controller
 
     private function repMonthlyTrend(int $repId, int $months = 6): array
     {
-        $now = Carbon::now();
+        $now = $this->getNow();
         $values = [];
         for ($i = $months - 1; $i >= 0; $i--) {
             $start = $now->copy()->subMonths($i)->startOfMonth();
@@ -478,9 +445,6 @@ class SalesReportController extends Controller
         return $values;
     }
 
-    /**
-     * GET /reports/sales/products — dedicated Product Report page
-     */
     public function productDetail()
     {
         $data = $this->getData();
@@ -488,11 +452,7 @@ class SalesReportController extends Controller
         $data['products'] = $data['products']->map(function ($p) use ($data) {
             $p['regionSplit'] = $this->productRegionSplit($p['id'], $data['regions']);
             $p['topReps'] = $this->topRepsForProduct($p['id']);
-
-            // No inventory table exists yet, so stock level is still simulated —
-            // would need a real `inventory` or `stock` table to make this genuine.
             $p['stockLevel'] = $this->seededInt($p['name'] . '-stock', 12, 96);
-
             $p['trend'] = $this->productMonthlyTrend($p['id']);
             return $p;
         });
@@ -508,9 +468,6 @@ class SalesReportController extends Controller
         return view('reports.product-detail', $data);
     }
 
-    /**
-     * GET /reports/sales/regional — dedicated Regional Report page
-     */
     public function regionalDetail()
     {
         $data = $this->getData();
@@ -527,9 +484,6 @@ class SalesReportController extends Controller
         return view('reports.regional-detail', $data);
     }
 
-    /**
-     * GET /reports/sales/representatives — dedicated Representative Report page
-     */
     public function repDetail()
     {
         $data = $this->getData();
@@ -547,11 +501,6 @@ class SalesReportController extends Controller
         return view('reports.rep-detail', $data);
     }
 
-    /**
-     * GET /reports/sales/export?format=csv&report=product
-     * format: csv | pdf | excel
-     * report: product | regional | rep | all
-     */
     public function export(Request $request)
     {
         $request->validate([
