@@ -1,5 +1,6 @@
 @extends('layouts.app')
 
+// Lopez 2:22
 @php $pageTitle = 'Sales Report'; @endphp
 
 @push('styles')
@@ -370,16 +371,17 @@
     </div>
 </div>
 
-@endsection
-
-@push('scripts')
+{{-- SCRIPTS (Moved directly into the content section so they are guaranteed to load) --}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // --- GLOBAL FUNCTIONS ---
     function switchTab(tab, btn) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('panel-' + tab).classList.add('active');
     }
+    
     function openExportModal() { document.getElementById('export-modal').classList.add('open'); }
     function closeExportModal() { document.getElementById('export-modal').classList.remove('open'); }
 
@@ -392,142 +394,40 @@
 
     const peso = (v) => '₱' + Number(v).toLocaleString('en-PH');
 
-    // ===== Regional Sales Comparison Chart =====
-    const regionalData = @json($regionalChart);
-    const regionNames = Object.keys(regionalData.series);
-
-    // Populate the stat boxes (Best Day / Average / Period Total per region)
-    regionNames.forEach(function (region) {
-        const s = regionalData.series[region].stats;
-        document.getElementById('stat-best-' + region).textContent = peso(s.bestValue) + ' · ' + s.bestLabel;
-        document.getElementById('stat-avg-' + region).textContent = peso(s.average);
-        document.getElementById('stat-total-' + region).textContent = peso(s.total);
-    });
-
+    // --- CHART VARIABLES & FUNCTIONS ---
     let regionalChart;
-    const regionalCanvas = document.getElementById('regionalChart');
-
-    if (regionalCanvas) {
-        regionalChart = new Chart(regionalCanvas.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: regionalData.labels,
-                datasets: regionNames.map(function (region) {
-                    return {
-                        label: region,
-                        data: regionalData.series[region].data,
-                        borderColor: regionalData.series[region].color,
-                        backgroundColor: regionalData.series[region].color + '15',
-                        borderWidth: 2.5,
-                        pointRadius: 2,
-                        pointHoverRadius: 6,
-                        tension: 0.3,
-                        fill: false,
-                    };
-                })
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: { display: false }, // using our own HTML legend above
-                    tooltip: {
-                        callbacks: {
-                            label: (item) => item.dataset.label + ': ' + peso(item.raw)
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        grid: { color: '#E7E9F2' },
-                        ticks: { callback: (v) => '₱' + (v / 1000).toFixed(1) + 'K', font: { size: 11 } }
-                    },
-                    x: { grid: { display: false }, ticks: { font: { size: 11 } } }
-                }
-            }
-        });
-
-        // Hovering near a specific line thickens that line and highlights its stat box
-        regionalCanvas.addEventListener('mousemove', function (e) {
-            const points = regionalChart.getElementsAtEventForMode(e, 'nearest', { intersect: false }, false);
-            if (!points.length) return;
-            highlightRegion(regionNames[points[0].datasetIndex]);
-        });
-        regionalCanvas.addEventListener('mouseleave', function () {
-            regionNames.forEach(r => clearRegionHighlight(r));
-            resetLineEmphasis();
-        });
-    }
-
-    function setLineEmphasis(activeName) {
-        if (!regionalChart) return;
-        regionalChart.data.datasets.forEach(ds => {
-            ds.borderWidth = (ds.label === activeName) ? 4 : 1.5;
-        });
-        regionalChart.update('none');
-    }
-
-    function resetLineEmphasis() {
-        if (!regionalChart) return;
-        regionalChart.data.datasets.forEach(ds => ds.borderWidth = 2.5);
-        regionalChart.update('none');
-    }
-
-    function clearRegionHighlight(name) {
-        const card = document.getElementById('region-card-' + name);
-        if (card) card.classList.remove('region-hover');
-    }
-
-    // Shared by: stat box hover AND chart line hover — keeps both directions in sync
-    function highlightRegion(name) {
-        regionNames.forEach(r => r === name
-            ? document.getElementById('region-card-' + r)?.classList.add('region-hover')
-            : clearRegionHighlight(r));
-        setLineEmphasis(name);
-    }
-
-    function unhighlightRegion(name) {
-        clearRegionHighlight(name);
-        resetLineEmphasis();
-    }
-
-    // ===== Revenue Overview Chart =====
-    const revenueData = @json($revenueChart);
-
     let revenueChart;
+    const revenueData = @json($revenueChart);
 
     function buildRevenueDataset(rangeKey) {
         const r = revenueData[rangeKey];
         const labels = [...r.labels, ...r.forecastLabels];
-
-        // Actual: real values only, null for the forecast tail
         const actual = [...r.actual, ...r.forecastLabels.map(() => null)];
-
-        // Forecast: null everywhere except last actual point (to connect) + forecast tail
-        const forecast = [
-            ...r.actual.map(() => null),
-        ];
-        forecast[r.actual.length - 1] = r.actual[r.actual.length - 1]; // connector point
+        const forecast = [...r.actual.map(() => null)];
+        forecast[r.actual.length - 1] = r.actual[r.actual.length - 1]; 
         forecast.push(...r.forecastValues);
-
-        // Previous period: same length as actual only, nothing during forecast tail
         const previous = [...r.previous, ...r.forecastLabels.map(() => null)];
-
         return { labels, actual, forecast, previous, stats: r.stats };
     }
 
     function renderStats(stats) {
-        document.getElementById('stat-best').textContent = peso(stats.bestValue) + ' · ' + stats.bestLabel;
-        document.getElementById('stat-average').textContent = peso(stats.average);
-        document.getElementById('stat-total').textContent = peso(stats.total);
+        const bestEl = document.getElementById('stat-best');
+        const avgEl = document.getElementById('stat-average');
+        const totalEl = document.getElementById('stat-total');
+        
+        if (bestEl) bestEl.textContent = peso(stats.bestValue) + ' · ' + stats.bestLabel;
+        if (avgEl) avgEl.textContent = peso(stats.average);
+        if (totalEl) totalEl.textContent = peso(stats.total);
     }
 
     function initRevenueChart(rangeKey) {
         const d = buildRevenueDataset(rangeKey);
         renderStats(d.stats);
 
-        const ctx = document.getElementById('revenueChart').getContext('2d');
+        const canvas = document.getElementById('revenueChart');
+        if (!canvas) return; 
+        
+        const ctx = canvas.getContext('2d');
 
         if (revenueChart) {
             revenueChart.data.labels = d.labels;
@@ -543,68 +443,22 @@
             data: {
                 labels: d.labels,
                 datasets: [
-                    {
-                        label: 'Actual',
-                        data: d.actual,
-                        borderColor: '#1E2A6E',
-                        backgroundColor: 'rgba(30,42,110,0.06)',
-                        borderWidth: 3,
-                        pointRadius: 3,
-                        pointHoverRadius: 6,
-                        tension: 0.3,
-                        fill: true,
-                        spanGaps: false,
-                    },
-                    {
-                        label: 'Forecast',
-                        data: d.forecast,
-                        borderColor: '#1FAE6C',
-                        borderDash: [6, 6],
-                        borderWidth: 3,
-                        pointRadius: 3,
-                        pointHoverRadius: 6,
-                        tension: 0.3,
-                        fill: false,
-                        spanGaps: true,
-                    },
-                    {
-                        label: 'Previous Period',
-                        data: d.previous,
-                        borderColor: '#B7BCD6',
-                        borderDash: [2, 4],
-                        borderWidth: 2,
-                        pointRadius: 0,
-                        tension: 0.3,
-                        fill: false,
-                        spanGaps: false,
-                    },
-                ],
+                    { label: 'Actual', data: d.actual, borderColor: '#1E2A6E', backgroundColor: 'rgba(30,42,110,0.06)', borderWidth: 3, pointRadius: 3, pointHoverRadius: 6, tension: 0.3, fill: true, spanGaps: false },
+                    { label: 'Forecast', data: d.forecast, borderColor: '#1FAE6C', borderDash: [6, 6], borderWidth: 3, pointRadius: 3, pointHoverRadius: 6, tension: 0.3, fill: false, spanGaps: true },
+                    { label: 'Previous Period', data: d.previous, borderColor: '#B7BCD6', borderDash: [2, 4], borderWidth: 2, pointRadius: 0, tension: 0.3, fill: false, spanGaps: false }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
-                    legend: { display: false }, // we use our own HTML legend above
-                    tooltip: {
-                        callbacks: {
-                            label: (item) => {
-                                if (item.raw === null) return null;
-                                return item.dataset.label + ': ' + peso(item.raw);
-                            }
-                        }
-                    }
+                    legend: { display: false }, 
+                    tooltip: { callbacks: { label: (item) => (item.raw === null) ? null : item.dataset.label + ': ' + peso(item.raw) } }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: false,
-                        grid: { color: '#E7E9F2' },
-                        ticks: { callback: (v) => '₱' + (v / 1000) + 'K', font: { size: 11 } }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { font: { size: 11 } }
-                    }
+                    y: { beginAtZero: false, grid: { color: '#E7E9F2' }, ticks: { callback: (v) => '₱' + (v / 1000) + 'K', font: { size: 11 } } },
+                    x: { grid: { display: false }, ticks: { font: { size: 11 } } }
                 }
             }
         });
@@ -616,46 +470,122 @@
         initRevenueChart(range);
     }
 
-    initRevenueChart('7D');
+    function setLineEmphasis(activeName) {
+        if (!regionalChart) return;
+        regionalChart.data.datasets.forEach(ds => ds.borderWidth = (ds.label === activeName) ? 4 : 1.5);
+        regionalChart.update('none');
+    }
 
-    // ===== Product Bar Chart =====
-    const productData = @json($products->take(5));
+    function resetLineEmphasis() {
+        if (!regionalChart) return;
+        regionalChart.data.datasets.forEach(ds => ds.borderWidth = 2.5);
+        regionalChart.update('none');
+    }
 
-    new Chart(document.getElementById('productChart').getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: productData.map(p => p.name),
-            datasets: [{
-                label: 'Revenue',
-                data: productData.map(p => p.actual),
-                backgroundColor: productData.map(p => p.color),
-                borderRadius: 6,
-                maxBarThickness: 56,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: (item) => 'Revenue: ' + peso(item.raw)
+    function clearRegionHighlight(name) {
+        const card = document.getElementById('region-card-' + name);
+        if (card) card.classList.remove('region-hover');
+    }
+
+    function highlightRegion(name) {
+        const regionalData = @json($regionalChart);
+        Object.keys(regionalData.series).forEach(r => r === name
+            ? document.getElementById('region-card-' + r)?.classList.add('region-hover')
+            : clearRegionHighlight(r));
+        setLineEmphasis(name);
+    }
+
+    function unhighlightRegion(name) {
+        clearRegionHighlight(name);
+        resetLineEmphasis();
+    }
+
+    // --- DOM READY EXECUTION ---
+    document.addEventListener('DOMContentLoaded', function () {
+        
+        initRevenueChart('7D');
+
+        const regionalData = @json($regionalChart);
+        const regionNames = Object.keys(regionalData.series);
+
+        regionNames.forEach(function (region) {
+            const s = regionalData.series[region].stats;
+            const bestEl = document.getElementById('stat-best-' + region);
+            if (bestEl) bestEl.textContent = peso(s.bestValue) + ' · ' + s.bestLabel;
+            const avgEl = document.getElementById('stat-avg-' + region);
+            if (avgEl) avgEl.textContent = peso(s.average);
+            const totalEl = document.getElementById('stat-total-' + region);
+            if (totalEl) totalEl.textContent = peso(s.total);
+        });
+
+        const regionalCanvas = document.getElementById('regionalChart');
+        if (regionalCanvas) {
+            regionalChart = new Chart(regionalCanvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: regionalData.labels,
+                    datasets: regionNames.map(function (region) {
+                        return {
+                            label: region,
+                            data: regionalData.series[region].data,
+                            borderColor: regionalData.series[region].color,
+                            backgroundColor: regionalData.series[region].color + '15',
+                            borderWidth: 2.5,
+                            pointRadius: 2,
+                            pointHoverRadius: 6,
+                            tension: 0.3,
+                            fill: false,
+                        };
+                    })
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (item) => item.dataset.label + ': ' + peso(item.raw) } } },
+                    scales: {
+                        y: { grid: { color: '#E7E9F2' }, ticks: { callback: (v) => '₱' + (v / 1000).toFixed(1) + 'K', font: { size: 11 } } },
+                        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
                     }
                 }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: { color: '#E7E9F2' },
-                    ticks: { callback: (v) => '₱' + (v / 1000) + 'K', font: { size: 11 } }
+            });
+
+            regionalCanvas.addEventListener('mousemove', function (e) {
+                const points = regionalChart.getElementsAtEventForMode(e, 'nearest', { intersect: false }, false);
+                if (!points.length) return;
+                highlightRegion(regionNames[points[0].datasetIndex]);
+            });
+            regionalCanvas.addEventListener('mouseleave', function () {
+                regionNames.forEach(r => clearRegionHighlight(r));
+                resetLineEmphasis();
+            });
+        }
+
+        // Added Array fallback in case PHP collection outputs a JSON object
+        const productDataRaw = @json($products->take(5));
+        const productData = Array.isArray(productDataRaw) ? productDataRaw : Object.values(productDataRaw);
+        const productCanvas = document.getElementById('productChart');
+        if (productCanvas) {
+            new Chart(productCanvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: productData.map(p => p.name),
+                    datasets: [{
+                        label: 'Revenue',
+                        data: productData.map(p => p.actual),
+                        backgroundColor: productData.map(p => p.color),
+                        borderRadius: 6,
+                        maxBarThickness: 56,
+                    }]
                 },
-                x: {
-                    grid: { display: false },
-                    ticks: { font: { size: 11 } }
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (item) => 'Revenue: ' + peso(item.raw) } } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#E7E9F2' }, ticks: { callback: (v) => '₱' + (v / 1000) + 'K', font: { size: 11 } } },
+                        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+                    }
                 }
-            }
+            });
         }
     });
 </script>
-@endpush
+@endsection
