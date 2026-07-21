@@ -380,6 +380,7 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     function switchTab(tab, btn) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
