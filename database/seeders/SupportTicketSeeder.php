@@ -16,7 +16,7 @@ class SupportTicketSeeder extends Seeder
             ['customer_name' => 'Ana Garcia', 'subject' => 'Refund request', 'priority' => 'Medium', 'status' => 'Done', 'assigned_to' => 'Dana Ruiz', 'description' => 'Customer cancelled order before shipping and refund has been processed.'],
             ['customer_name' => 'Luiz Mendoza', 'subject' => 'Question about warranty', 'priority' => 'Low', 'status' => 'Open', 'assigned_to' => 'Kyle Anthony', 'description' => 'Customer wants to confirm warranty coverage period for the Bluetooth Speaker.'],
             ['customer_name' => 'Sofie Lopez', 'subject' => 'Discount code not applying', 'priority' => 'Medium', 'status' => 'In Progress', 'assigned_to' => 'Dana Ruiz', 'description' => 'Corporate discount code returns an error at checkout for a bulk order.'],
-            ['customer_name' => 'Eloise Briderton', 'subject' => 'Account login issue', 'priority' => 'Low', 'status' => 'Done', 'assigned_to' => 'Kyle Anthony', 'description' => 'Customer could not log in; password reset email resolved the issue.'],
+            ['customer_name' => 'Eloise Briderton', 'subject' => 'Account login issue', 'priority' => 'Low', 'status' => 'Done', 'assigned_to' => 'Kyle Anthony', 'description' => 'Customer could not log in, password reset email resolved the issue.'],
         ];
 
         foreach ($tickets as $ticket) {
