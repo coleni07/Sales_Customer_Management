@@ -1,6 +1,5 @@
 @extends('layouts.app')
 
-// Lopez 2:22
 @php $pageTitle = 'Sales Report'; @endphp
 
 @push('styles')
