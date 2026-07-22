@@ -10,7 +10,67 @@
         </div>
     @endif
 
-    <div x-data="{ selected: null }" class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    @php
+        // Lightweight JSON snapshot of the tickets for the Alpine.js table
+        // below. Badge classes are precomputed here (via the existing model
+        // helpers) so the JS side never has to re-implement that logic.
+        $ticketsData = $tickets->map(fn ($t) => [
+            'id' => $t->id,
+            'code' => $t->code(),
+            'customer_name' => $t->customer_name,
+            'subject' => $t->subject,
+            'priority' => $t->priority,
+            'priority_badge' => $t->priorityBadgeClasses(),
+            'status' => $t->status,
+            'status_badge' => $t->statusBadgeClasses(),
+            'assigned_to' => $t->assigned_to,
+            'created_at' => optional($t->created_at)->toIso8601String(),
+        ])->values();
+    @endphp
+
+    <div
+        x-data="{
+            selected: null,
+            search: '',
+            sortBy: 'default',
+            showFilter: false,
+            tickets: {{ Js::from($ticketsData) }},
+            get filteredTickets() {
+                let list = this.tickets;
+
+                const q = this.search.trim().toLowerCase();
+                if (q !== '') {
+                    list = list.filter(t =>
+                        t.code.toLowerCase().includes(q) ||
+                        t.customer_name.toLowerCase().includes(q) ||
+                        t.subject.toLowerCase().includes(q)
+                    );
+                }
+
+                list = [...list];
+                if (this.sortBy === 'az') {
+                    list.sort((a, b) => a.customer_name.localeCompare(b.customer_name));
+                } else if (this.sortBy === 'za') {
+                    list.sort((a, b) => b.customer_name.localeCompare(a.customer_name));
+                } else if (this.sortBy === 'date_new') {
+                    list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                } else if (this.sortBy === 'date_old') {
+                    list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                }
+
+                return list;
+            },
+            sortLabel() {
+                return {
+                    default: 'Filter',
+                    az: 'Name: A-Z',
+                    za: 'Name: Z-A',
+                    date_new: 'Date: Newest',
+                    date_old: 'Date: Oldest',
+                }[this.sortBy];
+            }
+        }"
+        class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
         <!-- Ticket list -->
         <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
@@ -18,14 +78,47 @@
             <div class="flex items-center justify-between mb-6 gap-4 flex-wrap">
                 <div class="relative flex-1 max-w-md">
                     <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                    <input type="text" placeholder="Search Ticket ID, Customer"
+                    <input type="text" x-model="search" placeholder="Search Ticket ID, Customer"
                            class="w-full bg-gray-100 rounded-full pl-11 pr-4 py-2.5 text-sm text-gray-600 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-navy/30">
                 </div>
 
-                <button type="button" class="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 transition rounded-full px-5 py-2.5 text-sm font-medium text-gray-700">
-                    <i class="fa-solid fa-filter"></i>
-                    Filter
-                </button>
+                <div class="relative" @click.outside="showFilter = false">
+                    <button type="button" @click="showFilter = !showFilter"
+                            class="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 transition rounded-full px-5 py-2.5 text-sm font-medium text-gray-700">
+                        <i class="fa-solid fa-filter"></i>
+                        <span x-text="sortLabel()"></span>
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </button>
+
+                    <div x-show="showFilter" x-cloak x-transition
+                         class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-10 text-sm">
+                        <button type="button" @click="sortBy = 'az'; showFilter = false"
+                                class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                                :class="sortBy === 'az' ? 'text-brand font-semibold' : 'text-gray-700'">
+                            <i class="fa-solid fa-arrow-down-a-z w-4"></i> A - Z
+                        </button>
+                        <button type="button" @click="sortBy = 'za'; showFilter = false"
+                                class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                                :class="sortBy === 'za' ? 'text-brand font-semibold' : 'text-gray-700'">
+                            <i class="fa-solid fa-arrow-down-z-a w-4"></i> Z - A
+                        </button>
+                        <button type="button" @click="sortBy = 'date_new'; showFilter = false"
+                                class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                                :class="sortBy === 'date_new' ? 'text-brand font-semibold' : 'text-gray-700'">
+                            <i class="fa-solid fa-calendar w-4"></i> Date: Newest first
+                        </button>
+                        <button type="button" @click="sortBy = 'date_old'; showFilter = false"
+                                class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                                :class="sortBy === 'date_old' ? 'text-brand font-semibold' : 'text-gray-700'">
+                            <i class="fa-solid fa-calendar w-4"></i> Date: Oldest first
+                        </button>
+                        <hr class="my-2 border-gray-100">
+                        <button type="button" @click="sortBy = 'default'; showFilter = false"
+                                class="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-500">
+                            <i class="fa-solid fa-rotate-left w-4"></i> Reset
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div class="overflow-x-auto rounded-xl border border-gray-200">
@@ -42,41 +135,44 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @forelse ($tickets as $ticket)
-                            <tr @click="selected = {{ $ticket->id }}"
-                                :class="selected === {{ $ticket->id }} ? 'bg-brand/5' : ''"
+                        <template x-for="ticket in filteredTickets" :key="ticket.id">
+                            <tr @click="selected = ticket.id"
+                                :class="selected === ticket.id ? 'bg-brand/5' : ''"
                                 class="hover:bg-gray-50 transition cursor-pointer">
-                                <td class="px-5 py-4 font-semibold text-gray-800">{{ $ticket->code() }}</td>
-                                <td class="px-5 py-4 text-gray-700">{{ $ticket->customer_name }}</td>
-                                <td class="px-5 py-4 text-gray-700">{{ $ticket->subject }}</td>
+                                <td class="px-5 py-4 font-semibold text-gray-800" x-text="ticket.code"></td>
+                                <td class="px-5 py-4 text-gray-700" x-text="ticket.customer_name"></td>
+                                <td class="px-5 py-4 text-gray-700" x-text="ticket.subject"></td>
                                 <td class="px-5 py-4">
-                                    <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full {{ $ticket->priorityBadgeClasses() }}">
-                                        {{ $ticket->priority }}
-                                    </span>
+                                    <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full"
+                                          :class="ticket.priority_badge" x-text="ticket.priority"></span>
                                 </td>
                                 <td class="px-5 py-4">
-                                    <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full {{ $ticket->statusBadgeClasses() }}">
-                                        {{ $ticket->status }}
-                                    </span>
+                                    <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full"
+                                          :class="ticket.status_badge" x-text="ticket.status"></span>
                                 </td>
-                                <td class="px-5 py-4 text-gray-700">{{ $ticket->assigned_to }}</td>
+                                <td class="px-5 py-4 text-gray-700" x-text="ticket.assigned_to"></td>
                                 <td class="px-5 py-4 text-center">
                                     <i class="fa-regular fa-eye text-gray-600"></i>
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="px-5 py-10 text-center text-gray-500">
-                                    No support tickets yet.
-                                </td>
-                            </tr>
-                        @endforelse
+                        </template>
+
+                        <tr x-show="tickets.length === 0">
+                            <td colspan="7" class="px-5 py-10 text-center text-gray-500">
+                                No support tickets yet.
+                            </td>
+                        </tr>
+                        <tr x-show="tickets.length > 0 && filteredTickets.length === 0">
+                            <td colspan="7" class="px-5 py-10 text-center text-gray-500">
+                                No tickets match "<span x-text="search"></span>".
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
 
             <div class="flex justify-between items-center mt-4 text-sm text-gray-500">
-                <span>Showing 1 to {{ $tickets->count() }} out of {{ $tickets->count() }} entries</span>
+                <span>Showing <span x-text="filteredTickets.length"></span> out of <span x-text="tickets.length"></span> entries</span>
             </div>
         </div>
 
