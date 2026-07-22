@@ -50,18 +50,6 @@
                         @if ($customer)
                             <input type="hidden" name="customer_id" value="{{ $customer->id }}">
                         @endif
-                        <label class="flex items-center gap-1 text-xs text-gray-600 border border-gray-200 rounded-full px-3 py-1.5">
-                            <i class="fa-regular fa-calendar"></i>
-                            <input type="date" name="date_from" value="{{ $dateFrom }}" class="bg-transparent focus:outline-none text-xs">
-                        </label>
-                        <span class="text-gray-400">-</span>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 border border-gray-200 rounded-full px-3 py-1.5">
-                            <i class="fa-regular fa-calendar"></i>
-                            <input type="date" name="date_to" value="{{ $dateTo }}" class="bg-transparent focus:outline-none text-xs">
-                        </label>
-                        <button type="submit" class="bg-navy hover:bg-navyDark transition text-white text-xs font-semibold rounded-full px-5 py-2">
-                            Buy Now
-                        </button>
                     </div>
                 </form>
 

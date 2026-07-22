@@ -12,7 +12,7 @@
 
 <aside
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-    class="fixed lg:sticky inset-y-0 lg:inset-y-auto lg:top-0 left-0 z-40 w-64 h-screen bg-navy text-white flex flex-col transition-transform duration-300 ease-in-out"
+    class="fixed lg:static inset-y-0 left-0 z-40 w-64 bg-navy text-white flex flex-col transition-transform duration-300 ease-in-out"
 >
     <div class="px-6 py-6 text-lg font-bold leading-snug border-b border-white/10">
         Sales &amp; Costumers<br>Management

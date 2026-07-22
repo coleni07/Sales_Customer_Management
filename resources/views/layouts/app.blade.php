@@ -32,7 +32,7 @@
 </head>
 <body class="font-sans bg-slate-100 text-slate-800 antialiased">
 
-<div x-data="{ sidebarOpen: false }" class="flex min-h-screen">
+<div x-data="{ sidebarOpen: false }" class="flex h-screen overflow-hidden">
 
     @include('partials.sidebar')
 
@@ -40,7 +40,7 @@
     <div x-show="sidebarOpen" x-transition.opacity @click="sidebarOpen = false"
          class="fixed inset-0 bg-black/40 z-30 lg:hidden" x-cloak></div>
 
-    <div class="flex-1 flex flex-col min-w-0">
+    <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         @unless($hideTopbar ?? false)
             @include('partials.topbar')
         @else
@@ -52,8 +52,10 @@
             </button>
         @endunless
 
-        <!-- Page transition wrapper: fades + slides content in on load/navigation -->
-        <main class="flex-1 p-4 sm:p-6 page-transition">
+        <!-- Page transition wrapper: fades + slides content in on load/navigation.
+             This is the ONLY part of the page that scrolls now — the sidebar
+             and topbar stay fixed in place regardless of scroll position. -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 page-transition">
             @yield('content')
         </main>
     </div>

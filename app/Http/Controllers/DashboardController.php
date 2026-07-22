@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Sale;
 use App\Models\SalesOrder;
 use App\Models\Ticket;
 use Carbon\Carbon;
@@ -14,18 +15,24 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         // ---- Stat cards ----
-        $totalSales = SalesOrder::where('status', '!=', 'cancelled')->sum('amount');
+        // Total Sales is calculated the SAME way as the Reports page (month-to-date
+        // from the Sale model), so both pages always show the identical figure.
+        $now = Carbon::now();
+        $monthStart = $now->copy()->startOfMonth();
+        $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
+        $daysElapsed = $now->day;
+
+        $totalSales = (float) Sale::whereBetween('sale_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])->sum('amount');
         $totalOrders = SalesOrder::count();
         $totalCustomers = Customer::count();
 
-        $lastMonthSales = SalesOrder::where('status', '!=', 'cancelled')
-            ->whereBetween('order_date', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])
-            ->sum('amount');
-        $thisMonthSales = SalesOrder::where('status', '!=', 'cancelled')
-            ->whereBetween('order_date', [now()->startOfMonth(), now()->endOfMonth()])
-            ->sum('amount');
-        $salesGrowth = $lastMonthSales > 0
-            ? round((($thisMonthSales - $lastMonthSales) / $lastMonthSales) * 100, 1)
+        // Fair comparison: same number of days into last month, not the whole month
+        $lastMonthSamePeriod = (float) Sale::whereBetween('sale_date', [
+            $lastMonthStart->format('Y-m-d'),
+            $lastMonthStart->copy()->addDays($daysElapsed - 1)->format('Y-m-d'),
+        ])->sum('amount');
+        $salesGrowth = $lastMonthSamePeriod > 0
+            ? round((($totalSales - $lastMonthSamePeriod) / $lastMonthSamePeriod) * 100, 1)
             : 0;
 
         $ordersGrowth = 10.5;   // placeholder KPIs, swap for real period-over-period calc as needed
