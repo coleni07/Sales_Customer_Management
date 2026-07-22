@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @php $pageTitle = 'Support System'; @endphp
-//Ian
+
 @section('content')
 
     @if (session('success'))
