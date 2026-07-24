@@ -101,10 +101,10 @@
                     <tbody>
                         @foreach ($latestTickets as $ticket)
                             <tr class="border-b border-slate-50 hover:bg-slate-50">
-                                <td class="py-2.5 font-medium text-brand-dark">{{ $ticket->ticket_no }}</td>
-                                <td class="py-2.5">{{ $ticket->customer->name }}</td>
+                                <td class="py-2.5 font-medium text-brand-dark">{{ $ticket->code() }}</td>
+                                <td class="py-2.5">{{ $ticket->customer_name }}</td>
                                 <td class="py-2.5">
-                                    <span class="badge-in text-xs px-2.5 py-1 rounded-full font-medium {{ $ticket->statusColor() }}">{{ $ticket->statusLabel() }}</span>
+                                    <span class="badge-in text-xs px-2.5 py-1 rounded-full font-medium {{ $ticket->statusBadgeClasses() }}">{{ $ticket->status }}</span>
                                 </td>
                             </tr>
                         @endforeach

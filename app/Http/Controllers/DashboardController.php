@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Sale;
 use App\Models\SalesOrder;
-use App\Models\Ticket;
+use App\Models\SupportTicket;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -100,7 +100,7 @@ class DashboardController extends Controller
 
         // ---- Tables ----
         $recentOrders = SalesOrder::with('customer')->latest('order_date')->latest('id')->take(5)->get();
-        $latestTickets = Ticket::with('customer')->latest()->take(5)->get();
+        $latestTickets = SupportTicket::latest()->take(5)->get();
 
         return view('dashboard', compact(
             'totalSales', 'totalOrders', 'totalCustomers',
