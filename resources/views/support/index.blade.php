@@ -4,7 +4,8 @@
 @section('content')
 
     @if (session('success'))
-        <div class="mb-6 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl px-5 py-3 text-sm font-medium">
+        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)" x-transition
+             class="mb-6 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl px-5 py-3 text-sm font-medium">
             <i class="fa-solid fa-circle-check"></i>
             {{ session('success') }}
         </div>
@@ -70,7 +71,7 @@
                 }[this.sortBy];
             }
         }"
-        class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
 
         <!-- Ticket list -->
         <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
@@ -177,10 +178,10 @@
         </div>
 
         <!-- Ticket detail panel -->
-        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 lg:sticky lg:top-24">
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 lg:sticky lg:top-24 flex flex-col h-full">
 
             @foreach ($tickets as $ticket)
-                <div x-show="selected === {{ $ticket->id }}" x-cloak>
+                <div x-show="selected === {{ $ticket->id }}" x-cloak class="flex flex-col h-full">
                     <div class="flex items-center justify-between mb-4">
                         <h4 class="text-lg font-bold text-slate-800">Ticket {{ $ticket->code() }}</h4>
                         <button @click="selected = null" class="text-gray-400 hover:text-gray-600">
@@ -218,16 +219,16 @@
                     <hr class="mb-4 border-gray-200">
 
                     <h5 class="text-sm font-bold text-slate-800 mb-2">Description</h5>
-                    <p class="text-sm text-gray-600 mb-4">{{ $ticket->description }}</p>
+                    <p class="text-sm text-gray-600 mb-4 flex-1">{{ $ticket->description }}</p>
 
                     <a href="{{ route('support.feedback.create', $ticket) }}"
-                       class="block text-center bg-brand hover:bg-brand-dark transition text-white font-semibold rounded-full px-6 py-2.5 text-sm">
+                       class="mt-auto block text-center bg-brand hover:bg-brand-dark transition text-white font-semibold rounded-full px-6 py-2.5 text-sm">
                         Answer Invoice
                     </a>
                 </div>
             @endforeach
 
-            <div x-show="selected === null" class="text-center py-10">
+            <div x-show="selected === null" class="flex-1 flex flex-col items-center justify-center text-center py-10">
                 <i class="fa-solid fa-ticket fa-3x text-gray-300 mb-4"></i>
                 <h5 class="font-semibold text-slate-800">Select a Ticket</h5>
                 <p class="text-gray-500 text-sm mt-1">
