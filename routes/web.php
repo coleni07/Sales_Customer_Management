@@ -4,6 +4,7 @@ use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\McmController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PurchaseHistoryController;
 use App\Http\Controllers\SalesOrderController;
@@ -13,14 +14,17 @@ use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\WorkflowController;
 use Illuminate\Support\Facades\Route;
 
-// Dashboard
 Route::get('/', DashboardController::class . '@index')->name('dashboard');
 
-// Sales-Order
 Route::get('/sales-orders', [SalesOrderController::class, 'index'])->name('sales-orders.index');
 Route::get('/sales-orders/{salesOrder}', [SalesOrderController::class, 'show'])->name('sales-orders.show');
 Route::put('/sales-orders/{salesOrder}', [SalesOrderController::class, 'update'])->name('sales-orders.update');
 Route::post('/sales-orders/{salesOrder}/simulate-webhook', [SalesOrderController::class, 'simulateWebhook'])->name('sales-orders.simulate-webhook');
+
+// Simple placeholder routes for the remaining sidebar links so every
+// button in the sidebar actually navigates somewhere real.
+Route::get('/exit', [PageController::class, 'show'])->defaults('page', 'exit')->name('exit.index');
+Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
 
 // Support System 
 Route::get('/support', [SupportTicketController::class, 'index'])->name('support.index');
@@ -42,8 +46,6 @@ Route::get('/reports/sales/representatives', [SalesReportController::class, 'rep
 Route::get('/mcm', [McmController::class, 'index'])->name('mcm.index');
 Route::get('/campaigns/create', [CampaignController::class, 'create'])->name('campaigns.create');
 Route::post('/campaigns', [CampaignController::class, 'store'])->name('campaigns.store');
+
 Route::get('/workflows/create', [WorkflowController::class, 'create'])->name('workflow.create');
 Route::post('/workflows', [WorkflowController::class, 'store'])->name('workflow.store');
-
-// Exit
-Route::get('/exit', [PageController::class, 'show'])->defaults('page', 'exit')->name('exit.index');
