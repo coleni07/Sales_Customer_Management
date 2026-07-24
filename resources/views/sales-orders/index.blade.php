@@ -3,7 +3,7 @@
 @php $pageTitle = 'Sales Order'; @endphp
 
 @section('content')
-<div x-data="salesOrderPanel({{ $selectedOrder?->toJson() ?? 'null' }})" class="space-y-6">
+<div x-data="salesOrderPanel({{ $selectedOrder?->toJson() ?? 'null' }})" x-init="init()" class="space-y-6">
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
         
@@ -56,7 +56,7 @@
                         </thead>
                         <tbody>
                             @foreach ($orders as $order)
-                                <tr @click="loadOrder({{ $order->id }})"
+                                <tr id="order-row-{{ $order->id }}" @click="loadOrder({{ $order->id }})"
                                     :class="selected && selected.id === {{ $order->id }} ? 'bg-brand/5' : ''"
                                     class="border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors">
                                     <td class="py-2.5 font-medium text-brand-dark">{{ $order->order_no }}</td>
@@ -179,6 +179,22 @@ function salesOrderPanel(initial) {
         selected: initial,
         saving: false,
         savedMessage: '',
+        init() {
+            // Deep-link support: /sales-orders?highlight=123 auto-opens
+            // that order's detail panel, so notification links can jump
+            // straight to the relevant record instead of just the page.
+            const params = new URLSearchParams(window.location.search);
+            const highlightId = params.get('highlight');
+            if (highlightId) {
+                this.loadOrder(highlightId);
+                const row = document.getElementById('order-row-' + highlightId);
+                if (row) {
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    row.classList.add('bg-amber-50');
+                    setTimeout(() => row.classList.remove('bg-amber-50'), 2000);
+                }
+            }
+        },
         loadOrder(id) {
             fetch(`/sales-orders/${id}`)
                 .then(res => res.json())

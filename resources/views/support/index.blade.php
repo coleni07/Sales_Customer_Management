@@ -69,8 +69,25 @@
                     date_new: 'Date: Newest',
                     date_old: 'Date: Oldest',
                 }[this.sortBy];
+            },
+            init() {
+                // Deep-link support: /support?ticket=5 auto-opens that
+                // ticket's detail panel, so notification links can jump
+                // straight to the relevant record instead of just the page.
+                const params = new URLSearchParams(window.location.search);
+                const ticketId = params.get('ticket');
+                if (ticketId) {
+                    this.selected = parseInt(ticketId, 10);
+                    this.$nextTick(() => {
+                        const row = document.getElementById('ticket-row-' + ticketId);
+                        if (row) {
+                            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    });
+                }
             }
         }"
+        x-init="init()"
         class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
 
         <!-- Ticket list -->
@@ -138,6 +155,7 @@
                     <tbody class="divide-y divide-gray-100">
                         <template x-for="ticket in filteredTickets" :key="ticket.id">
                             <tr @click="selected = ticket.id"
+                                :id="'ticket-row-' + ticket.id"
                                 :class="selected === ticket.id ? 'bg-brand/5' : ''"
                                 class="hover:bg-gray-50 transition cursor-pointer">
                                 <td class="px-5 py-4 font-semibold text-gray-800" x-text="ticket.code"></td>

@@ -32,7 +32,7 @@ class NotificationController extends Controller
                     'subtitle' => $order->customer->name ?? 'Customer',
                     'time' => $order->created_at?->diffForHumans(),
                     'sort' => $order->created_at,
-                    'link' => route('sales-orders.index'),
+                    'link' => route('sales-orders.index', ['highlight' => $order->id]),
                 ]);
             });
 
@@ -49,7 +49,7 @@ class NotificationController extends Controller
                     'subtitle' => $ticket->subject,
                     'time' => $ticket->created_at?->diffForHumans(),
                     'sort' => $ticket->created_at,
-                    'link' => route('support.index'),
+                    'link' => route('support.index', ['ticket' => $ticket->id]),
                 ]);
             });
 
@@ -67,7 +67,7 @@ class NotificationController extends Controller
                     'subtitle' => Carbon::parse($campaign->send_date)->format('M j, Y'),
                     'time' => null,
                     'sort' => Carbon::parse($campaign->send_date),
-                    'link' => route('mcm.index'),
+                    'link' => route('mcm.index', ['highlight' => $campaign->id]),
                 ]);
             });
 

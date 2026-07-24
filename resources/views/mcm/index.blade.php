@@ -44,7 +44,7 @@
                     </thead>
                     <tbody>
                         @forelse ($campaigns as $campaign)
-                            <tr>
+                            <tr id="campaign-row-{{ $campaign->id }}">
                                 <td>{{ $campaign->name }}</td>
                                 <td><span class="channel-cell">{{ $campaign->channel }}</span></td>
                                 <td>{{ $campaign->type }}</td>
@@ -333,4 +333,23 @@
     </div><!-- /page-columns -->
 
 </div><!-- /mcm-page -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Deep-link support: /mcm?highlight=3 scrolls to and briefly highlights
+    // that campaign's row, so notification links can point at a specific
+    // record instead of just the general page.
+    const params = new URLSearchParams(window.location.search);
+    const highlightId = params.get('highlight');
+    if (highlightId) {
+        const row = document.getElementById('campaign-row-' + highlightId);
+        if (row) {
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            row.style.transition = 'background-color 0.3s ease';
+            row.style.backgroundColor = '#FEF3C7';
+            setTimeout(() => { row.style.backgroundColor = ''; }, 2000);
+        }
+    }
+});
+</script>
 @endsection
