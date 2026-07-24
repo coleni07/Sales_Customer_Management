@@ -96,7 +96,7 @@
                 </a>
                 <hr class="my-2 border-slate-100">
                 <a href="{{ route('exit.index') }}" class="flex items-center gap-2 px-4 py-2 text-rose-500 hover:bg-rose-50">
-                    <i class="fa-solid fa-right-from-bracket w-4"></i> Log Out
+                    <i class="fa-solid fa-right-from-bracket w-4"></i> Exit
                 </a>
             </div>
         </div>
@@ -125,6 +125,5 @@
                 </a>
             </div>
         </div>
-
     </div>
 </header>

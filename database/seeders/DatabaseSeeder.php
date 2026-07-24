@@ -96,17 +96,30 @@ class DatabaseSeeder extends Seeder
             ['no' => 'SO-1007', 'cust' => 'Eloise Briderton', 'amount' => 10300.00, 'status' => 'processing', 'pay' => 'cod', 'approval' => 'unapproved', 'days_ago' => 3],
         ];
 
+        // 'amount' above is the authoritative total shown in the listing table,
+        // so subtotal/discount/tax are derived backwards from it (at a flat 5%
+        // discount + 12% VAT, matching the rest of the app) so that
+        // subtotal - discount + tax + shipping always equals amount exactly,
+        // and the order-detail panel always agrees with the table row.
+        $discountRate = 0.05;
+        $taxRate = 0.12;
+
         foreach ($orders as $o) {
-            $subtotal = $o['no'] === 'SO-1001' ? 3800.00 : round($o['amount'] * 0.92, 2);
-            $discount = $o['no'] === 'SO-1001' ? 300.00 : round($subtotal * 0.05, 2);
-            $tax = $o['no'] === 'SO-1001' ? 250.00 : round(($subtotal - $discount) * 0.12, 2);
             $shipping = $o['no'] === 'SO-1001' ? 80.00 : 100.00;
+
+            $subtotal = round(($o['amount'] - $shipping) / ((1 - $discountRate) * (1 + $taxRate)), 2);
+            $discount = round($subtotal * $discountRate, 2);
+            $tax = round(($subtotal - $discount) * $taxRate, 2);
+
+            // Absorb any leftover centavo from rounding into shipping so the
+            // breakdown reconciles to the exact target amount.
+            $shipping = round($shipping + ($o['amount'] - ($subtotal - $discount + $tax + $shipping)), 2);
 
             $salesOrder = SalesOrder::create([
                 'order_no' => $o['no'],
                 'customer_id' => $customers[$o['cust']]->id,
                 'subtotal' => $subtotal,
-                'discount_label' => '10% Corp',
+                'discount_label' => '5% Corp',
                 'discount_amount' => $discount,
                 'tax_label' => 'VAT 12%',
                 'tax_amount' => $tax,
@@ -121,8 +134,12 @@ class DatabaseSeeder extends Seeder
             ]);
 
             if ($o['no'] === 'SO-1001') {
-                SalesOrderItem::create(['sales_order_id' => $salesOrder->id, 'item_name' => 'Speaker', 'qty' => 1, 'price' => 2300]);
-                SalesOrderItem::create(['sales_order_id' => $salesOrder->id, 'item_name' => 'Watch', 'qty' => 1, 'price' => 1200]);
+                // Same two products as before, rescaled so they sum to the
+                // corrected subtotal instead of a stale hardcoded total.
+                $speaker = round($subtotal * (2300 / 3500), 2);
+                $watch = round($subtotal - $speaker, 2);
+                SalesOrderItem::create(['sales_order_id' => $salesOrder->id, 'item_name' => 'Speaker', 'qty' => 1, 'price' => $speaker]);
+                SalesOrderItem::create(['sales_order_id' => $salesOrder->id, 'item_name' => 'Watch', 'qty' => 1, 'price' => $watch]);
             } else {
                 $this->seedItems($salesOrder);
             }

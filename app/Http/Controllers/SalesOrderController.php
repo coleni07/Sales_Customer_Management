@@ -9,10 +9,29 @@ class SalesOrderController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = 7;
+
+        // A notification link passes ?highlight=<id> to point at one specific
+        // order. That order can live on any page of the listing (it's just
+        // "the 3 latest pending orders", not necessarily page 1), so we work
+        // out which page it actually falls on and jump the pagination there
+        // — otherwise the detail panel would show an order that never
+        // appears as a row in the table at all.
+        $highlightId = $request->query('highlight');
+
+        if ($highlightId && ! $request->query('page')) {
+            $orderedIds = SalesOrder::orderByDesc('order_date')->orderByDesc('id')->pluck('id');
+            $position = $orderedIds->search((int) $highlightId);
+
+            if ($position !== false) {
+                $request->query->set('page', intdiv($position, $perPage) + 1);
+            }
+        }
+
         $orders = SalesOrder::with('customer')
             ->latest('order_date')
             ->latest('id')
-            ->paginate(7)
+            ->paginate($perPage)
             ->withQueryString();
 
         // Status tracking summary cards (Pending / Processing / Shipped / Delivered)
@@ -27,9 +46,16 @@ class SalesOrderController extends Controller
         $approvedCount = SalesOrder::where('approval_status', 'approved')->count();
         $unapprovedCount = SalesOrder::where('approval_status', 'unapproved')->count();
 
-        // Default selected order = first row on the page (mirrors the design)
-        $selectedOrder = $orders->first()
-            ? SalesOrder::with(['customer', 'items'])->find($orders->first()->id)
+        // Default selected order = the highlighted order (from a notification
+        // link) when it's present on this page, otherwise the first row on
+        // the page (mirrors the design) — so the detail panel always matches
+        // a row that's actually visible in the table.
+        $selectedId = ($highlightId && $orders->firstWhere('id', (int) $highlightId))
+            ? (int) $highlightId
+            : $orders->first()?->id;
+
+        $selectedOrder = $selectedId
+            ? SalesOrder::with(['customer', 'items'])->find($selectedId)
             : null;
 
         return view('sales-orders.index', compact(
