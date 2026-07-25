@@ -36,20 +36,20 @@
                 <div class="campaign-filter-tabs" style="display:flex; gap:8px; margin-bottom:12px;">
                     <a href="{{ route('mcm.index', ['status' => 'all']) }}"
                        style="padding:6px 14px; border-radius:6px; text-decoration:none; font-size:13px;
-                              background:{{ $status === 'all' ? '#111827' : '#f3f4f6' }};
-                              color:{{ $status === 'all' ? '#fff' : '#111827' }};">
+                              background:{{ $status === 'all' ? '#2b3e65' : '#f3f4f6' }};
+                              color:{{ $status === 'all' ? '#fff' : '#2b3e65' }};">
                         All ({{ $allCount }})
                     </a>
                     <a href="{{ route('mcm.index', ['status' => 'draft']) }}"
                        style="padding:6px 14px; border-radius:6px; text-decoration:none; font-size:13px;
-                              background:{{ $status === 'draft' ? '#111827' : '#f3f4f6' }};
-                              color:{{ $status === 'draft' ? '#fff' : '#111827' }};">
+                              background:{{ $status === 'draft' ? '#2b3e65' : '#f3f4f6' }};
+                              color:{{ $status === 'draft' ? '#fff' : '#2b3e65' }};">
                         Drafts ({{ $draftCount }})
                     </a>
                     <a href="{{ route('mcm.index', ['status' => 'scheduled']) }}"
                        style="padding:6px 14px; border-radius:6px; text-decoration:none; font-size:13px;
-                              background:{{ $status === 'scheduled' ? '#111827' : '#f3f4f6' }};
-                              color:{{ $status === 'scheduled' ? '#fff' : '#111827' }};">
+                              background:{{ $status === 'scheduled' ? '#2b3e65' : '#f3f4f6' }};
+                              color:{{ $status === 'scheduled' ? '#fff' : '#2b3e65' }};">
                         Scheduled ({{ $scheduledCount }})
                     </a>
                 </div>
@@ -74,7 +74,7 @@
                                 <td>{{ \Carbon\Carbon::parse($campaign->send_date)->format('M j, Y') }}</td>
                                 <td><span class="badge {{ $campaign->status }}">{{ ucfirst($campaign->status) }}</span></td>
                                 <td>
-                                    @if ($campaign->status === 'draft')
+                                    @if ($status === 'draft')
                                         <a href="{{ route('campaigns.edit', $campaign) }}"
                                            style="display:inline-block; padding:5px 12px; border-radius:6px;
                                                   background:#2563eb; color:#fff; text-decoration:none; font-size:12px;">
@@ -202,7 +202,9 @@
 
                 <div class="stat-row">
                     <div class="stat-pill">
-                        <div class="stat-icon red">&#128176;</div>
+                        <div class="stat-icon red">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+                        </div>
                         <div class="stat-text">
                             <div class="label">Total Campaigns</div>
                             <div class="value">{{ $campaigns->count() }}</div>
@@ -210,7 +212,9 @@
                         </div>
                     </div>
                     <div class="stat-pill">
-                        <div class="stat-icon purple">&#9993;</div>
+                        <div class="stat-icon purple">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+                        </div>
                         <div class="stat-text">
                             <div class="label">Total Sent</div>
                             <div class="value">16,478</div>
@@ -266,7 +270,9 @@
 
                 <div class="stat-row" style="margin-bottom:18px;">
                     <div class="stat-pill">
-                        <div class="stat-icon green">&#128200;</div>
+                        <div class="stat-icon green">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/></svg>
+                        </div>
                         <div class="stat-text">
                             <div class="label">Total Conversation</div>
                             <div class="value">1,355</div>
@@ -274,7 +280,9 @@
                         </div>
                     </div>
                     <div class="stat-pill">
-                        <div class="stat-icon blue">&#128202;</div>
+                      <div class="stat-icon blue">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="8" rx="1"/><rect x="10" y="7" width="4" height="13" rx="1"/><rect x="17" y="3" width="4" height="17" rx="1"/></svg>
+                        </div>
                         <div class="stat-text">
                             <div class="label">Total Campaigns</div>
                             <div class="value">12</div>
