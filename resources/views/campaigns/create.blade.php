@@ -3,16 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Add New Campaign</title>
+<title>{{ isset($campaign) ? 'Edit Campaign' : 'Add New Campaign' }}</title>
 <link rel="stylesheet" href="{{ asset('css/add-campaign.css') }}">
 </head>
 <body>
 
-<form class="modal-card" method="POST" action="{{ route('campaigns.store') }}" enctype="multipart/form-data" id="campaignForm">
+<form class="modal-card"
+      method="POST"
+      action="{{ isset($campaign) ? route('campaigns.update', $campaign) : route('campaigns.store') }}"
+      enctype="multipart/form-data"
+      id="campaignForm">
 @csrf
+@if (isset($campaign))
+  @method('PUT')
+@endif
 
   <div class="modal-header">
-    <h1>Add New Campaign</h1>
+    <h1>{{ isset($campaign) ? 'Edit Campaign' : 'Add New Campaign' }}</h1>
   </div>
 
   <div class="modal-body">
@@ -68,32 +75,32 @@
         <h2>Campaign Information</h2>
 
         <label class="field-label">Campaign Name <span class="required">*</span></label>
-        <input type="text" class="field-input" name="name" value="{{ old('name') }}" placeholder="Enter Campaign Name">
+        <input type="text" class="field-input" name="name" value="{{ old('name', $campaign->name ?? '') }}" placeholder="Enter Campaign Name">
 
         <label class="field-label">Campaign Type <span class="required">*</span></label>
         <select class="field-input select-input" name="type">
-          <option value="" disabled {{ old('type') ? '' : 'selected' }}>Select Campaign Type</option>
+          <option value="" disabled {{ old('type', $campaign->type ?? '') ? '' : 'selected' }}>Select Campaign Type</option>
           @foreach (['Promotional', 'Product Launch', 'Engagement', 'Retention'] as $option)
-            <option value="{{ $option }}" @selected(old('type') === $option)>{{ $option }}</option>
+            <option value="{{ $option }}" @selected(old('type', $campaign->type ?? '') === $option)>{{ $option }}</option>
           @endforeach
         </select>
 
         <label class="field-label">Objective <span class="required">*</span></label>
         <select class="field-input select-input" name="objective">
-          <option value="" disabled {{ old('objective') ? '' : 'selected' }}>Select Objective</option>
+          <option value="" disabled {{ old('objective', $campaign->objective ?? '') ? '' : 'selected' }}>Select Objective</option>
           @foreach (['Brand Awareness', 'Lead Generation', 'Sales Conversion', 'Customer Retention'] as $option)
-            <option value="{{ $option }}" @selected(old('objective') === $option)>{{ $option }}</option>
+            <option value="{{ $option }}" @selected(old('objective', $campaign->objective ?? '') === $option)>{{ $option }}</option>
           @endforeach
         </select>
 
         <label class="field-label">Description</label>
-        <textarea class="field-input textarea-input" name="description" placeholder="Enter campaign description (optional)">{{ old('description') }}</textarea>
+        <textarea class="field-input textarea-input" name="description" placeholder="Enter campaign description (optional)">{{ old('description', $campaign->description ?? '') }}</textarea>
 
         <label class="field-label">Status <span class="required">*</span></label>
-        <input type="hidden" name="status" id="statusInput" value="{{ old('status', 'scheduled') }}">
+        <input type="hidden" name="status" id="statusInput" value="{{ old('status', $campaign->status ?? 'scheduled') }}">
         <div class="status-toggle-wrap">
-          <button type="button" class="status-toggle {{ old('status', 'scheduled') === 'scheduled' ? 'active' : '' }}" data-status="scheduled" id="scheduledBtn">Scheduled</button>
-          <button type="button" class="status-toggle {{ old('status') === 'draft' ? 'active' : '' }}" data-status="draft" id="draftBtn">Draft</button>
+          <button type="button" class="status-toggle {{ old('status', $campaign->status ?? 'scheduled') === 'scheduled' ? 'active' : '' }}" data-status="scheduled" id="scheduledBtn">Scheduled</button>
+          <button type="button" class="status-toggle {{ old('status', $campaign->status ?? '') === 'draft' ? 'active' : '' }}" data-status="draft" id="draftBtn">Draft</button>
         </div>
       </div>
 
@@ -106,28 +113,28 @@
           <div class="field-col">
             <label class="field-label">Select Channel <span class="required">*</span></label>
             <select class="field-input select-input" name="channel">
-              <option value="" disabled {{ old('channel') ? '' : 'selected' }}>Select Channel</option>
+              <option value="" disabled {{ old('channel', $campaign->channel ?? '') ? '' : 'selected' }}>Select Channel</option>
               @foreach (['Email', 'SMS', 'Instagram', 'TikTok'] as $option)
-                <option value="{{ $option }}" @selected(old('channel') === $option)>{{ $option }}</option>
+                <option value="{{ $option }}" @selected(old('channel', $campaign->channel ?? '') === $option)>{{ $option }}</option>
               @endforeach
             </select>
           </div>
           <div class="field-col">
             <label class="field-label">Audience Segment <span class="required">*</span></label>
             <select class="field-input select-input" name="audience">
-              <option value="" disabled {{ old('audience') ? '' : 'selected' }}>Select Audience</option>
+              <option value="" disabled {{ old('audience', $campaign->audience ?? '') ? '' : 'selected' }}>Select Audience</option>
               @foreach (['All Customers', 'New Leads', 'Qualified Leads', 'Past Customers', 'Existing Customers'] as $option)
-                <option value="{{ $option }}" @selected(old('audience') === $option)>{{ $option }}</option>
+                <option value="{{ $option }}" @selected(old('audience', $campaign->audience ?? '') === $option)>{{ $option }}</option>
               @endforeach
             </select>
           </div>
         </div>
 
         <label class="field-label">Subject Line <span class="required">*</span></label>
-        <input type="text" class="field-input" id="subjectLine" name="subject_line" value="{{ old('subject_line') }}" placeholder="Enter subject line">
+        <input type="text" class="field-input" id="subjectLine" name="subject_line" value="{{ old('subject_line', $campaign->subject_line ?? '') }}" placeholder="Enter subject line">
 
         <label class="field-label">Campaign Message <span class="required">*</span></label>
-        <textarea class="field-input textarea-input message-input" id="campaignMessage" name="message" maxlength="1000" placeholder="Write your campaign message">{{ old('message') }}</textarea>
+        <textarea class="field-input textarea-input message-input" id="campaignMessage" name="message" maxlength="1000" placeholder="Write your campaign message">{{ old('message', $campaign->message ?? '') }}</textarea>
         <div class="char-counter"><span id="charCount">0</span>/1000</div>
 
         <label class="field-label">Attach Media (optional)</label>
@@ -142,6 +149,9 @@
           <input type="file" id="mediaInput" name="media" hidden>
         </div>
         <div class="upload-hint">Supported: JPG, PNG, MP4 (Max size: 10MB)</div>
+        @if (isset($campaign) && $campaign->media_path)
+          <div class="upload-hint">Current file: {{ basename($campaign->media_path) }} (upload a new file only if you want to replace it)</div>
+        @endif
       </div>
 
       <!-- Step 3 -->
@@ -152,11 +162,11 @@
         <div class="field-row">
           <div class="field-col">
             <label class="field-label">Start Date <span class="required">*</span></label>
-            <input type="date" class="field-input" name="send_date" value="{{ old('send_date') }}">
+            <input type="date" class="field-input" name="send_date" value="{{ old('send_date', isset($campaign) && $campaign->send_date ? \Carbon\Carbon::parse($campaign->send_date)->format('Y-m-d') : '') }}">
           </div>
           <div class="field-col">
             <label class="field-label">Start Time <span class="required">*</span></label>
-            <input type="time" class="field-input" name="send_time" value="{{ old('send_time') }}">
+            <input type="time" class="field-input" name="send_time" value="{{ old('send_time', isset($campaign) && $campaign->send_time ? \Carbon\Carbon::parse($campaign->send_time)->format('H:i') : '') }}">
           </div>
         </div>
 
@@ -180,9 +190,9 @@
 
         <label class="field-label">Time Zone</label>
         <select class="field-input select-input" name="timezone">
-          <option value="" disabled {{ old('timezone') ? '' : 'selected' }}>Select Time Zone</option>
+          <option value="" disabled {{ old('timezone', $campaign->timezone ?? '') ? '' : 'selected' }}>Select Time Zone</option>
           @foreach (['(GMT+08:00) Philippines', '(GMT+00:00) UTC', '(GMT-05:00) New York'] as $option)
-            <option value="{{ $option }}" @selected(old('timezone') === $option)>{{ $option }}</option>
+            <option value="{{ $option }}" @selected(old('timezone', $campaign->timezone ?? '') === $option)>{{ $option }}</option>
           @endforeach
         </select>
 
@@ -236,6 +246,7 @@
 
 <script>
   const form = document.getElementById('campaignForm');
+  const finalButtonLabel = @json(isset($campaign) ? 'Save Changes' : 'Create Campaign');
   const steps = document.querySelectorAll('.step');
   const contents = document.querySelectorAll('.step-content');
   const nextBtn = document.getElementById('nextBtn');
@@ -258,7 +269,7 @@
     contents.forEach(c => c.classList.remove('active'));
     document.getElementById('step-' + current).classList.add('active');
 
-    nextBtn.textContent = current === total ? 'Create Campaign' : 'Next';
+    nextBtn.textContent = current === total ? finalButtonLabel : 'Next';
     backBtn.style.display = current === 1 ? 'none' : 'inline-block';
 
     if (current === total) {

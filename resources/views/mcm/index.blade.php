@@ -62,6 +62,7 @@
                             <th>Type</th>
                             <th>Schedule</th>
                             <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -72,10 +73,19 @@
                                 <td>{{ $campaign->type }}</td>
                                 <td>{{ \Carbon\Carbon::parse($campaign->send_date)->format('M j, Y') }}</td>
                                 <td><span class="badge {{ $campaign->status }}">{{ ucfirst($campaign->status) }}</span></td>
+                                <td>
+                                    @if ($campaign->status === 'draft')
+                                        <a href="{{ route('campaigns.edit', $campaign) }}"
+                                           style="display:inline-block; padding:5px 12px; border-radius:6px;
+                                                  background:#2563eb; color:#fff; text-decoration:none; font-size:12px;">
+                                            Edit
+                                        </a>
+                                    @endif
+                                </td>
                             </tr>
-                       @empty
+                        @empty
                             <tr>
-                                <td colspan="5">
+                                <td colspan="6">
                                     @if ($status === 'draft')
                                         No draft campaigns yet.
                                     @elseif ($status === 'scheduled')

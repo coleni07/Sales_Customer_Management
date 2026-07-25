@@ -46,6 +46,8 @@ Route::get('/reports/sales/representatives', [SalesReportController::class, 'rep
 Route::get('/mcm', [McmController::class, 'index'])->name('mcm.index');
 Route::get('/campaigns/create', [CampaignController::class, 'create'])->name('campaigns.create');
 Route::post('/campaigns', [CampaignController::class, 'store'])->name('campaigns.store');
+Route::get('/campaigns/{campaign}/edit', [CampaignController::class, 'edit'])->name('campaigns.edit');
+Route::put('/campaigns/{campaign}', [CampaignController::class, 'update'])->name('campaigns.update');
 
 Route::get('/workflows/create', [WorkflowController::class, 'create'])->name('workflow.create');
 Route::post('/workflows', [WorkflowController::class, 'store'])->name('workflow.store');
