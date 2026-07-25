@@ -12,6 +12,10 @@ class CustomerController extends Controller
         $search = $request->query('search');
 
         $customers = Customer::query()
+            ->withCount('orders')
+            ->with(['orders' => function ($query) {
+                $query->latest('payment_date')->limit(1);
+            }])
             ->when($search, function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
                     ->orWhere('customer_code', 'like', "%{$search}%");
@@ -21,15 +25,5 @@ class CustomerController extends Controller
             ->withQueryString();
 
         return view('customers.index', compact('customers'));
-    }
-
-    public function show(Customer $customer)
-    {
-        $orders = $customer->orders()
-            ->with('items')
-            ->latest()
-            ->get();
-
-        return view('customers.show', compact('customer', 'orders'));
     }
 }

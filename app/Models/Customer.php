@@ -12,21 +12,6 @@ class Customer extends Model
 
     protected $fillable = ['customer_code', 'name', 'email', 'phone', 'address', 'location', 'total_orders', 'status'];
 
-    /**
-     * Phone number masked for display in list views, e.g. "0917-***".
-     * Keeps the first 4 digits visible and hides the rest.
-     */
-    public function getMaskedPhoneAttribute(): string
-    {
-        $phone = (string) $this->phone;
-
-        if (strlen($phone) <= 4) {
-            return $phone;
-        }
-
-        return substr($phone, 0, 4) . '-***';
-    }
-
     public function salesOrders(): HasMany
     {
         return $this->hasMany(SalesOrder::class);
@@ -40,5 +25,24 @@ class Customer extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Phone number masked for table/list display, e.g. "0912-***".
+     * Keeps the first 4 digits visible and hides the rest.
+     */
+    public function getMaskedPhoneAttribute(): string
+    {
+        if (empty($this->phone)) {
+            return 'N/A';
+        }
+
+        $digits = preg_replace('/\D/', '', $this->phone);
+
+        if (strlen($digits) <= 4) {
+            return str_repeat('*', strlen($digits));
+        }
+
+        return substr($digits, 0, 4) . '-***';
     }
 }

@@ -45,12 +45,21 @@ class PurchaseHistoryController extends Controller
 
         $customer = $customerId ? Customer::find($customerId) : null;
 
+        $summary = [
+            'orders_count' => $orders->count(),
+            'items_count' => $orders->sum(fn ($order) => $order->items->count()),
+            'total_spent' => $orders->sum(fn ($order) => $order->items
+                ->where('status', 'delivered')
+                ->sum(fn ($item) => $item->price * $item->quantity)),
+        ];
+
         return view('purchase-history.index', [
             'orders' => $orders,
             'status' => $status,
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
             'customer' => $customer,
+            'summary' => $summary,
         ]);
     }
 }
