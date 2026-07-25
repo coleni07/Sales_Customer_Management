@@ -217,7 +217,7 @@
                         </div>
                         <div class="stat-text">
                             <div class="label">Total Sent</div>
-                            <div class="value">16,478</div>
+                            <div class="value">3,587</div>
                             <div class="delta">+15% from last month</div>
                         </div>
                     </div>
@@ -232,42 +232,82 @@
                     <div class="legend-item"><span class="legend-dot" style="background:var(--green);"></span>Conversion</div>
                 </div>
 
-                <div class="chart-container">
-                    <div class="chart-yaxis">
-                        <span>5k</span>
-                        <span>3k</span>
-                        <span>2k</span>
-                        <span>1k</span>
-                        <span>500</span>
-                        <span>0</span>
-                    </div>
-                    <div class="chart-wrap">
-                        <svg viewBox="0 0 560 160" preserveAspectRatio="xMidYMid meet">
-                            <line x1="0" y1="6" x2="560" y2="6" stroke="#eef0f3" stroke-width="1"/>
-                            <line x1="0" y1="38" x2="560" y2="38" stroke="#eef0f3" stroke-width="1"/>
-                            <line x1="0" y1="70" x2="560" y2="70" stroke="#eef0f3" stroke-width="1"/>
-                            <line x1="0" y1="102" x2="560" y2="102" stroke="#eef0f3" stroke-width="1"/>
-                            <line x1="0" y1="134" x2="560" y2="134" stroke="#eef0f3" stroke-width="1"/>
-
-                            <polyline fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"
-                                points="0,80 80,62 160,90 240,52 320,66 400,34 480,48 560,16" />
-                            <polyline fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"
-                                points="0,134 80,124 160,138 240,120 320,132 400,106 480,130 560,116" />
-                            <polyline fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"
-                                points="0,142 80,140 160,144 240,133 320,139 400,129 480,133 560,124" />
-                        </svg>
-                    </div>
-                </div>
-                <div class="chart-xaxis">
-                    <span>05-7</span>
-                    <span>05-8</span>
-                    <span>05-12</span>
-                    <span>05-16</span>
-                    <span>05-20</span>
-                    <span>05-25</span>
-                    <span>05-28</span>
+                <div class="chart-container" style="height:220px;">
+                    <canvas id="performanceChart"></canvas>
                 </div>
 
+                <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+                <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const ctx = document.getElementById('performanceChart');
+                    if (!ctx) return;
+
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: ['05-7', '05-8', '05-12', '05-16', '05-20', '05-25', '05-28'],
+                            datasets: [
+                                {
+                                    label: 'Sent',
+                                    data: [373, 435, 270, 518, 415, 684, 892],
+                                    borderColor: '#ef4444',
+                                    backgroundColor: '#ef4444',
+                                    tension: 0.35,
+                                    pointRadius: 3,
+                                    pointHoverRadius: 6,
+                                    borderWidth: 2.5,
+                                },
+                                {
+                                    label: 'Click',
+                                    data: [400, 500, 250, 550, 350, 650, 480],
+                                    borderColor: '#7c3aed',
+                                    backgroundColor: '#7c3aed',
+                                    tension: 0.35,
+                                    pointRadius: 3,
+                                    pointHoverRadius: 6,
+                                    borderWidth: 2.5,
+                                },
+                                {
+                                    label: 'Conversion',
+                                    data: [180, 200, 120, 280, 190, 320, 290],
+                                    borderColor: '#16a34a',
+                                    backgroundColor: '#16a34a',
+                                    tension: 0.35,
+                                    pointRadius: 3,
+                                    pointHoverRadius: 6,
+                                    borderWidth: 2.5,
+                                },
+                            ],
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: { mode: 'index', intersect: false },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: '#111827',
+                                    padding: 10,
+                                    titleFont: { size: 12 },
+                                    bodyFont: { size: 12 },
+                                    cornerRadius: 6,
+                                },
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: '#eef0f3' },
+                                    ticks: { font: { size: 11 }, color: '#9ca3af' },
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { font: { size: 11 }, color: '#9ca3af' },
+                                },
+                            },
+                        },
+                    });
+                });
+                </script>
                 <div class="stat-row" style="margin-bottom:18px;">
                     <div class="stat-pill">
                         <div class="stat-icon green">
