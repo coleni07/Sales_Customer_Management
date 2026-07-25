@@ -37,6 +37,8 @@
             search: '',
             sortBy: 'default',
             showFilter: false,
+            page: 1,
+            perPage: 7,
             tickets: {{ Js::from($ticketsData) }},
             get filteredTickets() {
                 let list = this.tickets;
@@ -62,6 +64,21 @@
                 }
 
                 return list;
+            },
+            get totalPages() {
+                return Math.max(1, Math.ceil(this.filteredTickets.length / this.perPage));
+            },
+            get paginatedTickets() {
+                if (this.page > this.totalPages) this.page = this.totalPages;
+                const start = (this.page - 1) * this.perPage;
+                return this.filteredTickets.slice(start, start + this.perPage);
+            },
+            get pageNumbers() {
+                return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+            },
+            goToPage(n) {
+                if (n < 1 || n > this.totalPages) return;
+                this.page = n;
             },
             sortLabel() {
                 return {
@@ -98,7 +115,7 @@
             <div class="flex items-center justify-between mb-6 gap-4 flex-wrap">
                 <div class="relative flex-1 max-w-md">
                     <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                    <input type="text" x-model="search" placeholder="Search Ticket ID, Customer"
+                    <input type="text" x-model="search" @input="page = 1" placeholder="Search Ticket ID, Customer"
                            class="w-full bg-gray-100 rounded-full pl-11 pr-4 py-2.5 text-sm text-gray-600 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-navy/30">
                 </div>
 
@@ -112,28 +129,28 @@
 
                     <div x-show="showFilter" x-cloak x-transition
                          class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-10 text-sm">
-                        <button type="button" @click="sortBy = 'az'; showFilter = false"
+                        <button type="button" @click="sortBy = 'az'; showFilter = false; page = 1"
                                 class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
                                 :class="sortBy === 'az' ? 'text-brand font-semibold' : 'text-gray-700'">
                             <i class="fa-solid fa-arrow-down-a-z w-4"></i> A - Z
                         </button>
-                        <button type="button" @click="sortBy = 'za'; showFilter = false"
+                        <button type="button" @click="sortBy = 'za'; showFilter = false; page = 1"
                                 class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
                                 :class="sortBy === 'za' ? 'text-brand font-semibold' : 'text-gray-700'">
                             <i class="fa-solid fa-arrow-down-z-a w-4"></i> Z - A
                         </button>
-                        <button type="button" @click="sortBy = 'date_new'; showFilter = false"
+                        <button type="button" @click="sortBy = 'date_new'; showFilter = false; page = 1"
                                 class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
                                 :class="sortBy === 'date_new' ? 'text-brand font-semibold' : 'text-gray-700'">
                             <i class="fa-solid fa-calendar w-4"></i> Date: Newest first
                         </button>
-                        <button type="button" @click="sortBy = 'date_old'; showFilter = false"
+                        <button type="button" @click="sortBy = 'date_old'; showFilter = false; page = 1"
                                 class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
                                 :class="sortBy === 'date_old' ? 'text-brand font-semibold' : 'text-gray-700'">
                             <i class="fa-solid fa-calendar w-4"></i> Date: Oldest first
                         </button>
                         <hr class="my-2 border-gray-100">
-                        <button type="button" @click="sortBy = 'default'; showFilter = false"
+                        <button type="button" @click="sortBy = 'default'; showFilter = false; page = 1"
                                 class="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-500">
                             <i class="fa-solid fa-rotate-left w-4"></i> Reset
                         </button>
@@ -155,7 +172,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        <template x-for="ticket in filteredTickets" :key="ticket.id">
+                        <template x-for="ticket in paginatedTickets" :key="ticket.id">
                             <tr @click="selected = ticket.id"
                                 :id="'ticket-row-' + ticket.id"
                                 :class="selected === ticket.id ? 'bg-brand/5' : ''"
@@ -196,8 +213,30 @@
                 </table>
             </div>
 
-            <div class="flex justify-between items-center mt-4 text-sm text-gray-500">
-                <span>Showing <span x-text="filteredTickets.length"></span> out of <span x-text="tickets.length"></span> entries</span>
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mt-4 text-sm text-gray-500">
+                <span>
+                    Showing <span x-text="filteredTickets.length === 0 ? 0 : ((page - 1) * perPage) + 1"></span>-<span x-text="Math.min(page * perPage, filteredTickets.length)"></span>
+                    out of <span x-text="filteredTickets.length"></span> entries
+                </span>
+
+                <div class="flex items-center gap-1" x-show="totalPages > 1">
+                    <button type="button" @click="goToPage(page - 1)" :disabled="page === 1"
+                            class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+
+                    <template x-for="n in pageNumbers" :key="n">
+                        <button type="button" @click="goToPage(n)"
+                                class="w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium"
+                                :class="page === n ? 'bg-brand text-white' : 'text-gray-600 hover:bg-gray-100'"
+                                x-text="n"></button>
+                    </template>
+
+                    <button type="button" @click="goToPage(page + 1)" :disabled="page === totalPages"
+                            class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -261,8 +300,6 @@
             </div>
         </div>
 
-    </div>
-
     <!-- Quick-view modal (opened via the eye button) -->
     <div x-show="quickView !== null" x-cloak
          x-transition.opacity
@@ -321,6 +358,8 @@
                 </div>
             </template>
         </div>
+    </div>
+
     </div>
 
 @endsection
