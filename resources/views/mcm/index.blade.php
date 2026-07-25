@@ -284,9 +284,9 @@
                             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="8" rx="1"/><rect x="10" y="7" width="4" height="13" rx="1"/><rect x="17" y="3" width="4" height="17" rx="1"/></svg>
                         </div>
                         <div class="stat-text">
-                            <div class="label">Total Campaigns</div>
-                            <div class="value">12</div>
-                            <div class="delta">+20% from last month</div>
+                            <div class="label">Total ROI</div>
+                            <div class="value">12,960</div>
+                            <div class="delta">+10% from last month</div>
                         </div>
                     </div>
                 </div>
@@ -303,7 +303,7 @@
                         <span class="campaign-name">Summer Sale Blast</span>
                         <div class="roi-bar-wrap">
                             <div class="roi-bar-track"><div class="roi-bar-fill" style="width:92%;"></div></div>
-                            <span class="roi-value">&#8369; 49,359.00</span>
+                            <span class="roi-value">&#8369; 9,359.00</span>
                         </div>
                     </div>
 
@@ -311,7 +311,7 @@
                         <span class="campaign-name">Weekend Flash Sale</span>
                         <div class="roi-bar-wrap">
                             <div class="roi-bar-track"><div class="roi-bar-fill" style="width:80%;"></div></div>
-                            <span class="roi-value">&#8369; 40,289.00</span>
+                            <span class="roi-value">&#8369; 5,289.00</span>
                         </div>
                     </div>
 
@@ -319,7 +319,7 @@
                         <span class="campaign-name">Follow us on Instagram!</span>
                         <div class="roi-bar-wrap">
                             <div class="roi-bar-track"><div class="roi-bar-fill" style="width:70%;"></div></div>
-                            <span class="roi-value">&#8369; 36,756.00</span>
+                            <span class="roi-value">&#8369; 6,756.00</span>
                         </div>
                     </div>
 
@@ -327,7 +327,7 @@
                         <span class="campaign-name">New Product SMS</span>
                         <div class="roi-bar-wrap">
                             <div class="roi-bar-track"><div class="roi-bar-fill" style="width:63%;"></div></div>
-                            <span class="roi-value">&#8369; 34,156.00</span>
+                            <span class="roi-value">&#8369; 4,156.00</span>
                         </div>
                     </div>
 
@@ -335,7 +335,7 @@
                         <span class="campaign-name">Loyalty Reward</span>
                         <div class="roi-bar-wrap">
                             <div class="roi-bar-track"><div class="roi-bar-fill" style="width:55%;"></div></div>
-                            <span class="roi-value">&#8369; 29,909.00</span>
+                            <span class="roi-value">&#8369; 9,909.00</span>
                         </div>
                     </div>
 
