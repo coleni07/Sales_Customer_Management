@@ -355,7 +355,7 @@
                             <th>Workflow</th>
                             <th>Trigger</th>
                             <th>Status</th>
-                            <th>Leads Enrolled</th>
+                            <th style="text-align:right;">Leads Enrolled</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -364,7 +364,7 @@
                                 <td>{{ $workflow->name }}</td>
                                 <td>{{ $workflow->trigger }}</td>
                                 <td><span class="badge {{ $workflow->status }}">{{ ucfirst($workflow->status) }}</span></td>
-                                <td>{{ $workflow->leads_enrolled }}</td>
+                                <td style="text-align:right;">{{ $workflow->leads_enrolled }}</td>
                             </tr>
                         @empty
                             <tr>
