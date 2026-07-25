@@ -13,19 +13,18 @@ class Customer extends Model
     protected $fillable = ['customer_code', 'name', 'email', 'phone', 'address', 'location', 'total_orders', 'status'];
 
     /**
-     * Masked phone number for list views, e.g. "0917-***".
-     * Keeps only the digits before the first separator visible.
+     * Phone number masked for display in list views, e.g. "0917-***".
+     * Keeps the first 4 digits visible and hides the rest.
      */
-    public function getPhoneMaskedAttribute(): string
+    public function getMaskedPhoneAttribute(): string
     {
-        if (! $this->phone) {
-            return '—';
+        $phone = (string) $this->phone;
+
+        if (strlen($phone) <= 4) {
+            return $phone;
         }
 
-        $digits = preg_replace('/\D/', '', $this->phone);
-        $prefix = substr($digits, 0, 3);
-
-        return $prefix !== '' ? "{$prefix}-***" : '***';
+        return substr($phone, 0, 4) . '-***';
     }
 
     public function salesOrders(): HasMany

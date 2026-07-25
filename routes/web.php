@@ -33,6 +33,7 @@ Route::post('/support/feedback', [SupportFeedbackController::class, 'store'])->n
 
 // Customers module
 Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
 Route::get('/purchase-history', [PurchaseHistoryController::class, 'index'])->name('purchase-history.index');
 
 // Reports
