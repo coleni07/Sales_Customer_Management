@@ -32,6 +32,28 @@
                     <h2>Create &amp; Schedule Campaigns</h2>
                     <a href="{{ route('campaigns.create') }}" class="btn-primary">+ New Campaign</a>
                 </div>
+
+                <div class="campaign-filter-tabs" style="display:flex; gap:8px; margin-bottom:12px;">
+                    <a href="{{ route('mcm.index', ['status' => 'all']) }}"
+                       style="padding:6px 14px; border-radius:6px; text-decoration:none; font-size:13px;
+                              background:{{ $status === 'all' ? '#111827' : '#f3f4f6' }};
+                              color:{{ $status === 'all' ? '#fff' : '#111827' }};">
+                        All ({{ $allCount }})
+                    </a>
+                    <a href="{{ route('mcm.index', ['status' => 'draft']) }}"
+                       style="padding:6px 14px; border-radius:6px; text-decoration:none; font-size:13px;
+                              background:{{ $status === 'draft' ? '#111827' : '#f3f4f6' }};
+                              color:{{ $status === 'draft' ? '#fff' : '#111827' }};">
+                        Drafts ({{ $draftCount }})
+                    </a>
+                    <a href="{{ route('mcm.index', ['status' => 'scheduled']) }}"
+                       style="padding:6px 14px; border-radius:6px; text-decoration:none; font-size:13px;
+                              background:{{ $status === 'scheduled' ? '#111827' : '#f3f4f6' }};
+                              color:{{ $status === 'scheduled' ? '#fff' : '#111827' }};">
+                        Scheduled ({{ $scheduledCount }})
+                    </a>
+                </div>
+
                 <table>
                     <thead>
                         <tr>
@@ -51,9 +73,17 @@
                                 <td>{{ \Carbon\Carbon::parse($campaign->send_date)->format('M j, Y') }}</td>
                                 <td><span class="badge {{ $campaign->status }}">{{ ucfirst($campaign->status) }}</span></td>
                             </tr>
-                        @empty
+                       @empty
                             <tr>
-                                <td colspan="5">No campaigns yet. Click "+ New Campaign" to create one.</td>
+                                <td colspan="5">
+                                    @if ($status === 'draft')
+                                        No draft campaigns yet.
+                                    @elseif ($status === 'scheduled')
+                                        No scheduled campaigns yet.
+                                    @else
+                                        No campaigns yet. Click "+ New Campaign" to create one.
+                                    @endif
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
