@@ -295,9 +295,12 @@
                      real ROI figures once you're tracking spend/revenue per campaign -->
                 <div class="roi-card">
                     <div class="roi-header-row">
-                        <span>Campaign</span>
-                        <span>ROI</span>
+                    <span>Campaign</span>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <span style="width:50px; flex-shrink:0;"></span>
+                        <span style="width:90px; text-align:center; flex-shrink:0;">ROI</span>
                     </div>
+                </div>
 
                     <div class="roi-row">
                         <span class="campaign-name">Summer Sale Blast</span>

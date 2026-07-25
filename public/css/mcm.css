@@ -327,9 +327,9 @@
     font-size:12px;
     font-weight:500;
     white-space:nowrap;
+    width:90px;
+    text-align:center;
     color:var(--text-dark);
-    min-width:100px;
-    text-align:right;
   }
 
   .lead-stats{
