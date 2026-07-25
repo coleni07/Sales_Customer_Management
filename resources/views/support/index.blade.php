@@ -20,6 +20,7 @@
             'code' => $t->code(),
             'customer_name' => $t->customer_name,
             'subject' => $t->subject,
+            'description' => $t->description,
             'priority' => $t->priority,
             'priority_badge' => $t->priorityBadgeClasses(),
             'status' => $t->status,
@@ -32,6 +33,7 @@
     <div
         x-data="{
             selected: null,
+            quickView: null,
             search: '',
             sortBy: 'default',
             showFilter: false,
@@ -171,7 +173,11 @@
                                 </td>
                                 <td class="px-5 py-4 text-gray-700" x-text="ticket.assigned_to"></td>
                                 <td class="px-5 py-4 text-center">
-                                    <i class="fa-regular fa-eye text-gray-600"></i>
+                                    <button type="button" @click.stop="quickView = ticket"
+                                            title="Quick view"
+                                            class="text-gray-600 hover:text-brand transition inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100">
+                                        <i class="fa-regular fa-eye"></i>
+                                    </button>
                                 </td>
                             </tr>
                         </template>
@@ -255,6 +261,66 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- Quick-view modal (opened via the eye button) -->
+    <div x-show="quickView !== null" x-cloak
+         x-transition.opacity
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="background: rgba(15, 23, 42, 0.45);"
+         @click.self="quickView = null"
+         @keydown.escape.window="quickView = null">
+        <div x-show="quickView !== null" x-transition
+             class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" @click.stop>
+            <template x-if="quickView">
+                <div>
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-500 uppercase" x-text="quickView.code"></p>
+                            <h4 class="text-lg font-bold text-slate-800" x-text="quickView.subject"></h4>
+                        </div>
+                        <button type="button" @click="quickView = null" class="text-gray-400 hover:text-gray-600">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full"
+                              :class="quickView.priority_badge" x-text="quickView.priority"></span>
+                        <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full"
+                              :class="quickView.status_badge" x-text="quickView.status"></span>
+                    </div>
+
+                    <dl class="space-y-3 text-sm">
+                        <div>
+                            <dt class="text-xs font-semibold text-gray-500 uppercase">Customer</dt>
+                            <dd class="text-gray-800" x-text="quickView.customer_name"></dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-semibold text-gray-500 uppercase">Assigned To</dt>
+                            <dd class="text-gray-800" x-text="quickView.assigned_to || '—'"></dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-semibold text-gray-500 uppercase">Description</dt>
+                            <dd class="text-gray-600" x-text="quickView.description"></dd>
+                        </div>
+                    </dl>
+
+                    <div class="flex gap-3 mt-6">
+                        <button type="button"
+                                @click="selected = quickView.id; quickView = null;
+                                        $nextTick(() => document.getElementById('ticket-row-' + selected)?.scrollIntoView({ behavior: 'smooth', block: 'center' }))"
+                                class="flex-1 text-center bg-brand hover:bg-brand-dark transition text-white font-semibold rounded-full px-6 py-2.5 text-sm">
+                            View Full Details
+                        </button>
+                        <button type="button" @click="quickView = null"
+                                class="flex-1 text-center bg-gray-100 hover:bg-gray-200 transition text-gray-700 font-semibold rounded-full px-6 py-2.5 text-sm">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </div>
     </div>
 
 @endsection
