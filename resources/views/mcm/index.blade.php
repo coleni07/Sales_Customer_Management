@@ -373,7 +373,7 @@
                         @endforelse
                     </tbody>
                 </table>
-                <div class="arrow">&#8594;</div>
+                
             </div>
 
         </div><!-- /col-right -->
