@@ -30,7 +30,7 @@ class SalesOrderFactory extends Factory
             'approval_status' => $this->faker->randomElement(['approved', 'unapproved']),
             'warehouse_code' => 'W' . $this->faker->numberBetween(100, 199),
             'gl_code' => 'GL-' . $this->faker->numberBetween(200, 299),
-            'order_date' => $this->faker->dateTimeBetween('-21 days', 'now'),
+            'order_date' => $this->faker->dateTimeBetween('-6 months', 'now'),
         ];
     }
 }

@@ -66,6 +66,7 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        $this->call(SalesReportSeeder::class);
         // ---- Named customers matching the mockups ----
         // Extra fields (customer_code, location, total_orders, status) belong
         // to the Customers module — merged in here so it's the SAME customer
@@ -132,6 +133,8 @@ class DatabaseSeeder extends Seeder
             $salesOrder = SalesOrder::create([
                 'order_no' => $o['no'],
                 'customer_id' => $customers[$o['cust']]->id,
+                'region_id' => \App\Models\Region::inRandomOrder()->value('id'),
+                'representative_id' => \App\Models\Representative::inRandomOrder()->value('id'),
                 'subtotal' => $subtotal,
                 'discount_label' => '5% Corp',
                 'discount_amount' => $discount,
@@ -179,10 +182,13 @@ class DatabaseSeeder extends Seeder
 
         // ---- Extra random data so charts/pagination have real volume ----
         Customer::factory(20)->create()->each(function ($customer) {
-            SalesOrder::factory(random_int(1, 4))->create(['customer_id' => $customer->id])
-                ->each(function ($order) {
-                    $this->seedItems($order);
-                });
+            SalesOrder::factory(random_int(10, 25))->create([
+                'customer_id' => $customer->id,
+                'region_id' => \App\Models\Region::inRandomOrder()->value('id'),
+                'representative_id' => \App\Models\Representative::inRandomOrder()->value('id'),
+            ])->each(function ($order) {
+                $this->seedItems($order);
+            });
             Ticket::factory(random_int(0, 2))->create(['customer_id' => $customer->id]);
         });
 
@@ -213,8 +219,5 @@ class DatabaseSeeder extends Seeder
 
         // ---- Support System module (integrated from the SCM sub-module) ----
         $this->call(SupportTicketSeeder::class);
-
-        // ---- Sales Report module: teammate's own seeder (regions, products, representatives, ~200 days of sales) ----
-        $this->call(SalesReportSeeder::class);
     }
 }

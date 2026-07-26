@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
-use App\Models\Sale;
 use App\Models\SalesOrder;
 use App\Models\SupportTicket;
 use Carbon\Carbon;
@@ -22,15 +21,19 @@ class DashboardController extends Controller
         $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
         $daysElapsed = $now->day;
 
-        $totalSales = (float) Sale::whereBetween('sale_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])->sum('amount');
+        $totalSales = (float) SalesOrder::where('status', '!=', 'cancelled')
+            ->whereBetween('order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
+            ->sum('amount');
+
         $totalOrders = SalesOrder::count();
         $totalCustomers = Customer::count();
 
         // Fair comparison: same number of days into last month, not the whole month
-        $lastMonthSamePeriod = (float) Sale::whereBetween('sale_date', [
-            $lastMonthStart->format('Y-m-d'),
-            $lastMonthStart->copy()->addDays($daysElapsed - 1)->format('Y-m-d'),
-        ])->sum('amount');
+        $lastMonthSamePeriod = (float) SalesOrder::where('status', '!=', 'cancelled')
+            ->whereBetween('order_date', [
+                $lastMonthStart->format('Y-m-d'),
+                $lastMonthStart->copy()->addDays($daysElapsed - 1)->format('Y-m-d'),
+            ])->sum('amount');
         $salesGrowth = $lastMonthSamePeriod > 0
             ? round((($totalSales - $lastMonthSamePeriod) / $lastMonthSamePeriod) * 100, 1)
             : 0;
@@ -95,7 +98,7 @@ class DashboardController extends Controller
             'cancelled' => $statusCounts->get('cancelled', 0),
         ];
         $ordersByStatusPct = collect($ordersByStatus)->map(
-            fn ($v) => round(($v / $totalForStatus) * 100)
+            fn($v) => round(($v / $totalForStatus) * 100)
         );
 
         // ---- Tables ----
@@ -103,10 +106,19 @@ class DashboardController extends Controller
         $latestTickets = SupportTicket::latest()->take(5)->get();
 
         return view('dashboard', compact(
-            'totalSales', 'totalOrders', 'totalCustomers',
-            'salesGrowth', 'ordersGrowth', 'customersGrowth',
-            'salesByDay', 'salesByWeek', 'salesByMonth', 'ordersByStatus', 'ordersByStatusPct',
-            'recentOrders', 'latestTickets'
+            'totalSales',
+            'totalOrders',
+            'totalCustomers',
+            'salesGrowth',
+            'ordersGrowth',
+            'customersGrowth',
+            'salesByDay',
+            'salesByWeek',
+            'salesByMonth',
+            'ordersByStatus',
+            'ordersByStatusPct',
+            'recentOrders',
+            'latestTickets'
         ));
     }
 }

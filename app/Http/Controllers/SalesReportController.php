@@ -11,7 +11,8 @@ use Carbon\Carbon;
 use App\Models\Product;
 use App\Models\Region;
 use App\Models\Representative;
-use App\Models\Sale;
+use App\Models\SalesOrder;
+use App\Models\SalesOrderItem;
 
 class SalesReportController extends Controller
 {
@@ -21,17 +22,18 @@ class SalesReportController extends Controller
      */
     private function getNow(): Carbon
     {
-        $latestSale = Sale::max('sale_date');
+        $latestSale = SalesOrder::max('order_date');
         return $latestSale ? Carbon::parse($latestSale)->endOfDay() : Carbon::now();
     }
 
     private function dailyTotals(Carbon $start, Carbon $end): array
     {
-        return Sale::whereBetween('sale_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
-            ->selectRaw('sale_date, SUM(amount) as total')
-            ->groupBy('sale_date')
-            ->pluck('total', 'sale_date')
-            ->mapWithKeys(fn ($v, $k) => [Carbon::parse($k)->format('Y-m-d') => (float) $v])
+        return SalesOrder::where('status', '!=', 'cancelled')
+            ->whereBetween('order_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+            ->selectRaw('order_date, SUM(amount) as total')
+            ->groupBy('order_date')
+            ->pluck('total', 'order_date')
+            ->mapWithKeys(fn($v, $k) => [Carbon::parse($k)->format('Y-m-d') => (float) $v])
             ->all();
     }
 
@@ -70,7 +72,6 @@ class SalesReportController extends Controller
                 $cursor = $cursor->copy()->addMonthNoOverflow()->startOfMonth();
             }
         }
-
         return ['labels' => $labels, 'values' => $values];
     }
 
@@ -81,7 +82,9 @@ class SalesReportController extends Controller
         for ($i = 3; $i >= 1; $i--) {
             $start = $now->copy()->subMonths($i)->startOfMonth();
             $end = $now->copy()->subMonths($i)->endOfMonth();
-            $totals[] = (float) Sale::whereBetween('sale_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])->sum('amount');
+            $totals[] = (float) SalesOrder::where('status', '!=', 'cancelled')
+                ->whereBetween('order_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+                ->sum('amount');
         }
 
         $rates = [];
@@ -90,8 +93,7 @@ class SalesReportController extends Controller
                 $rates[] = ($totals[$i] - $totals[$i - 1]) / $totals[$i - 1];
             }
         }
-
-        return $rates ? array_sum($rates) / count($rates) : 0.05; 
+        return $rates ? array_sum($rates) / count($rates) : 0.05;
     }
 
     private function buildRevenueChart(): array
@@ -100,14 +102,13 @@ class SalesReportController extends Controller
         $now = $this->getNow();
 
         $configs = [
-            '7D'  => ['days' => 7,   'unit' => 'day',   'labelFmt' => 'M j', 'stepGrowth' => $growthRate / 30],
-            '30D' => ['days' => 30,  'unit' => 'day',   'labelFmt' => 'M j', 'stepGrowth' => $growthRate / 30],
-            '3M'  => ['days' => 90,  'unit' => 'week',  'labelFmt' => 'M j', 'stepGrowth' => $growthRate / 4],
-            '6M'  => ['days' => 180, 'unit' => 'month', 'labelFmt' => 'M',   'stepGrowth' => $growthRate],
+            '7D' => ['days' => 7, 'unit' => 'day', 'labelFmt' => 'M j', 'stepGrowth' => $growthRate / 30],
+            '30D' => ['days' => 30, 'unit' => 'day', 'labelFmt' => 'M j', 'stepGrowth' => $growthRate / 30],
+            '3M' => ['days' => 90, 'unit' => 'week', 'labelFmt' => 'M j', 'stepGrowth' => $growthRate / 4],
+            '6M' => ['days' => 180, 'unit' => 'month', 'labelFmt' => 'M', 'stepGrowth' => $growthRate],
         ];
 
         $ranges = [];
-
         foreach ($configs as $key => $cfg) {
             $end = $now->copy();
             $start = $now->copy()->subDays($cfg['days'] - 1);
@@ -124,10 +125,11 @@ class SalesReportController extends Controller
             $forecastLabels = [];
             $forecastValues = [end($actual) ?: 0];
             $stepDate = $end->copy();
+
             for ($i = 1; $i <= 2; $i++) {
                 $stepDate = match ($cfg['unit']) {
-                    'day'   => $stepDate->copy()->addDay(),
-                    'week'  => $stepDate->copy()->addWeek(),
+                    'day' => $stepDate->copy()->addDay(),
+                    'week' => $stepDate->copy()->addWeek(),
                     'month' => $stepDate->copy()->addMonthNoOverflow(),
                 };
                 $forecastLabels[] = $stepDate->format($cfg['labelFmt']);
@@ -135,18 +137,17 @@ class SalesReportController extends Controller
             }
 
             $bestIndex = $actual ? array_keys($actual, max($actual))[0] : 0;
-
             $ranges[$key] = [
-                'labels'         => $labels,
-                'actual'         => $actual,
-                'previous'       => $previousValues,
+                'labels' => $labels,
+                'actual' => $actual,
+                'previous' => $previousValues,
                 'forecastLabels' => $forecastLabels,
                 'forecastValues' => array_slice($forecastValues, 1),
-                'stats'          => [
-                    'bestLabel' => $labels[$bestIndex] ?? '—',
+                'stats' => [
+                    'bestLabel' => $labels[$bestIndex] ?? '',
                     'bestValue' => $actual[$bestIndex] ?? 0,
-                    'average'   => count($actual) ? round(array_sum($actual) / count($actual)) : 0,
-                    'total'     => array_sum($actual),
+                    'average' => count($actual) ? round(array_sum($actual) / count($actual)) : 0,
+                    'total' => array_sum($actual),
                 ],
             ];
         }
@@ -157,53 +158,10 @@ class SalesReportController extends Controller
     private function categoryColors(): array
     {
         return [
-            'Audio'       => '#14B8A6',
-            'Power'       => '#3B82F6',
+            'Audio' => '#14B8A6',
+            'Power' => '#3B82F6',
             'Accessories' => '#F5B301',
         ];
-    }
-
-    private function buildRegionalDailyTrend(): array
-    {
-        $now = $this->getNow();
-        $days = 14;
-        $start = $now->copy()->subDays($days - 1);
-
-        $labels = [];
-        for ($c = $start->copy(); $c->lte($now); $c->addDay()) {
-            $labels[] = $c->format('M j');
-        }
-
-        $series = [];
-        foreach (Region::all() as $region) {
-            $daily = Sale::where('region_id', $region->id)
-                ->whereBetween('sale_date', [$start->format('Y-m-d'), $now->format('Y-m-d')])
-                ->selectRaw('sale_date, SUM(amount) as total')
-                ->groupBy('sale_date')
-                ->pluck('total', 'sale_date')
-                ->mapWithKeys(fn ($v, $k) => [Carbon::parse($k)->format('Y-m-d') => (float) $v])
-                ->all();
-
-            $values = [];
-            for ($c = $start->copy(); $c->lte($now); $c->addDay()) {
-                $values[] = round($daily[$c->format('Y-m-d')] ?? 0);
-            }
-
-            $bestIndex = $values ? array_keys($values, max($values))[0] : 0;
-
-            $series[$region->name] = [
-                'data'  => $values,
-                'color' => $region->color,
-                'stats' => [
-                    'bestLabel' => $labels[$bestIndex] ?? '—',
-                    'bestValue' => $values[$bestIndex] ?? 0,
-                    'average'   => count($values) ? round(array_sum($values) / count($values)) : 0,
-                    'total'     => array_sum($values),
-                ],
-            ];
-        }
-
-        return ['labels' => $labels, 'series' => $series];
     }
 
     private function getData(): array
@@ -215,122 +173,144 @@ class SalesReportController extends Controller
         $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
         $daysElapsed = $now->day;
 
-        // Total Sales
-        $totalValue = (float) Sale::whereBetween('sale_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])->sum('amount');
+        // --- LIVE DATA: Total Sales & Categories ---
+        $totalValue = (float) SalesOrder::whereBetween('order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
+            ->where('status', '!=', 'cancelled')
+            ->sum('amount');
+
         $totalTarget = (float) Region::sum('monthly_target');
-        
-        $lastMonthSamePeriod = (float) Sale::whereBetween('sale_date', [
+
+        $lastMonthSamePeriod = (float) SalesOrder::whereBetween('order_date', [
             $lastMonthStart->format('Y-m-d'),
             $lastMonthStart->copy()->addDays($daysElapsed - 1)->format('Y-m-d'),
-        ])->sum('amount');
-        
+        ])->where('status', '!=', 'cancelled')->sum('amount');
+
         $change = $lastMonthSamePeriod > 0 ? round((($totalValue - $lastMonthSamePeriod) / $lastMonthSamePeriod) * 100, 1) : 0;
         $percent = $totalTarget > 0 ? round(($totalValue / $totalTarget) * 100) : 0;
 
-        // Category breakdown
-        $breakdownRaw = Sale::join('products', 'sales.product_id', '=', 'products.id')
-            ->whereBetween('sale_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
-            ->selectRaw('products.category as category, SUM(sales.amount) as total')
+        $breakdownRaw = SalesOrderItem::join('sales_orders', 'sales_order_items.sales_order_id', '=', 'sales_orders.id')
+            ->join('products', 'sales_order_items.item_name', '=', 'products.name')
+            ->whereBetween('sales_orders.order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
+            ->where('sales_orders.status', '!=', 'cancelled')
+            ->selectRaw('products.category as category, SUM(sales_order_items.price * sales_order_items.qty) as total')
             ->groupBy('products.category')
             ->pluck('total', 'category');
-        
+
         $breakdownSum = $breakdownRaw->sum();
         $breakdown = $breakdownRaw->map(function ($value, $category) use ($breakdownSum, $categoryColors) {
             return [
                 'category' => $category,
-                'value'    => round($value),
-                'percent'  => $breakdownSum > 0 ? round(($value / $breakdownSum) * 100) : 0,
-                'color'    => $categoryColors[$category] ?? '#94A3B8',
+                'value' => round($value),
+                'percent' => $breakdownSum > 0 ? round(($value / $breakdownSum) * 100) : 0,
+                'color' => $categoryColors[$category] ?? '#94A3B8',
             ];
         })->sortByDesc('value')->values();
 
-        // Forecast 
         $growthRate = $this->monthlyGrowthRate();
-        $lastCompleteMonthTotal = (float) Sale::whereBetween('sale_date', [$lastMonthStart->format('Y-m-d'), $lastMonthEnd->format('Y-m-d')])->sum('amount');
+        $lastCompleteMonthTotal = (float) SalesOrder::whereBetween('order_date', [$lastMonthStart->format('Y-m-d'), $lastMonthEnd->format('Y-m-d')])
+            ->where('status', '!=', 'cancelled')
+            ->sum('amount');
         $forecastValue = round($lastCompleteMonthTotal * (1 + $growthRate));
 
-        // Products
-        $monthFilter = fn ($q) => $q->whereBetween('sale_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')]);
+        // --- LIVE DATA: Products ---
+        $products = Product::all()->map(function ($p) use ($categoryColors, $monthStart, $now) {
+            $liveSales = SalesOrderItem::join('sales_orders', 'sales_order_items.sales_order_id', '=', 'sales_orders.id')
+                ->where('sales_order_items.item_name', $p->name)
+                ->whereBetween('sales_orders.order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
+                ->where('sales_orders.status', '!=', 'cancelled')
+                ->selectRaw('SUM(sales_order_items.qty) as total_qty, SUM(sales_order_items.qty * sales_order_items.price) as total_revenue')
+                ->first();
 
-        $products = Product::withSum(['sales as actual' => $monthFilter], 'amount')
-            ->withSum(['sales as qty' => $monthFilter], 'quantity')
-            ->get()
-            ->map(function ($p) use ($categoryColors) {
-                return [
-                    'id'       => $p->id,
-                    'name'     => $p->name,
-                    'category' => $p->category,
-                    'qty'      => (int) ($p->qty ?? 0),
-                    'actual'   => round($p->actual ?? 0),
-                    'target'   => (float) $p->monthly_target,
-                    'color'    => $categoryColors[$p->category] ?? '#94A3B8',
-                ];
-            })
-            ->sortByDesc('actual')
-            ->values();
+            return [
+                'id' => $p->id,
+                'name' => $p->name,
+                'category' => $p->category,
+                'qty' => (int) ($liveSales->total_qty ?? 0),
+                'actual' => round($liveSales->total_revenue ?? 0),
+                'target' => (float) $p->monthly_target,
+                'color' => $categoryColors[$p->category] ?? '#94A3B8',
+            ];
+        })->sortByDesc('actual')->values();
 
-        // Regions
-        $regions = Region::withSum(['sales as sales' => $monthFilter], 'amount')
-            ->get()
-            ->map(function ($r) {
-                $sales = round($r->sales ?? 0);
-                return [
-                    'id'      => $r->id,
-                    'name'    => $r->name,
-                    'sales'   => $sales,
-                    'target'  => (float) $r->monthly_target,
-                    'color'   => $r->color,
-                    'percent' => $r->monthly_target > 0 ? round(($sales / $r->monthly_target) * 100) : 0,
-                ];
-            });
-
-        // Representatives
-        $lastMonthFilter = fn ($q) => $q->whereBetween('sale_date', [$lastMonthStart->format('Y-m-d'), $lastMonthEnd->format('Y-m-d')]);
+        // --- LIVE DATA: Regions & Reps ---
+        $regions = Region::withSum([
+            'salesOrders as sales' => function ($q) use ($monthStart, $now) {
+                $q->whereBetween('order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
+                    ->where('status', '!=', 'cancelled');
+            }
+        ], 'amount')->get()->map(function ($r) {
+            $sales = round($r->sales ?? 0);
+            return [
+                'id' => $r->id,
+                'name' => $r->name,
+                'sales' => $sales,
+                'target' => (float) $r->monthly_target,
+                'color' => $r->color,
+                'percent' => $r->monthly_target > 0 ? round(($sales / $r->monthly_target) * 100) : 0,
+            ];
+        });
 
         $reps = Representative::with('region')
-            ->withSum(['sales as revenue' => $monthFilter], 'amount')
-            ->withCount(['sales as deals' => $monthFilter])
-            ->withSum(['sales as lastMonthRevenue' => $lastMonthFilter], 'amount')
+            ->withSum([
+                'salesOrders as revenue' => function ($q) use ($monthStart, $now) {
+                    $q->whereBetween('order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
+                        ->where('status', '!=', 'cancelled');
+                }
+            ], 'amount')
+            ->withCount([
+                'salesOrders as deals' => function ($q) use ($monthStart, $now) {
+                    $q->whereBetween('order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
+                        ->where('status', '!=', 'cancelled');
+                }
+            ])
+            ->withSum([
+                'salesOrders as lastMonthRevenue' => function ($q) use ($lastMonthStart, $lastMonthEnd) {
+                    $q->whereBetween('order_date', [$lastMonthStart->format('Y-m-d'), $lastMonthEnd->format('Y-m-d')])
+                        ->where('status', '!=', 'cancelled');
+                }
+            ], 'amount')
             ->get()
             ->map(function ($rep) {
                 $revenue = round($rep->revenue ?? 0);
+                $deals = (int) ($rep->deals ?? 0);
                 $lastMonthRevenue = round($rep->lastMonthRevenue ?? 0);
                 $repChange = $lastMonthRevenue > 0 ? round((($revenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 1) : 0;
 
                 return [
-                    'id'           => $rep->id,
-                    'name'         => $rep->name,
-                    'revenue'      => $revenue,
-                    'deals'        => (int) ($rep->deals ?? 0),
-                    'region'       => $rep->region->name,
-                    'quota'        => (float) $rep->monthly_quota,
-                    'change'       => $repChange,
+                    'id' => $rep->id,
+                    'name' => $rep->name,
+                    'revenue' => $revenue,
+                    'deals' => $deals,
+                    'avgDealSize' => $deals > 0 ? round($revenue / $deals) : 0,
+                    'region' => $rep->region->name,
+                    'quota' => (float) $rep->monthly_quota,
+                    'change' => $repChange,
                     'quotaPercent' => $rep->monthly_quota > 0 ? round(($revenue / $rep->monthly_quota) * 100) : 0,
-                    'initials'     => collect(explode(' ', $rep->name))->map(fn ($w) => strtoupper($w[0]))->implode(''),
+                    'initials' => collect(explode(' ', $rep->name))->map(fn($w) => strtoupper($w[0]))->implode(''),
                 ];
             });
 
         return [
             'totalSales' => [
-                'value'     => $totalValue,
-                'target'    => $totalTarget,
-                'percent'   => $percent,
-                'change'    => $change,
+                'value' => $totalValue,
+                'target' => $totalTarget,
+                'percent' => $percent,
+                'change' => $change,
                 'remaining' => max($totalTarget - $totalValue, 0),
                 'breakdown' => $breakdown,
             ],
             'forecast' => [
-                'value'  => $forecastValue,
+                'value' => $forecastValue,
                 'change' => round($growthRate * 100, 1),
-                'best'   => round($forecastValue * 1.10 / 1000),
-                'worst'  => round($forecastValue * 0.90 / 1000),
+                'best' => round($forecastValue * 1.10 / 1000),
+                'worst' => round($forecastValue * 0.90 / 1000),
             ],
-            'revenueChart'    => $this->buildRevenueChart(),
-            'products'        => $products,
-            'categoryColors'  => $categoryColors,
-            'regions'         => $regions,
-            'regionalChart'   => $this->buildRegionalDailyTrend(),
-            'reps'            => $reps,
+            'revenueChart' => $this->buildRevenueChart(),
+            'products' => $products,
+            'categoryColors' => $categoryColors,
+            'regions' => $regions,
+            'regionalChart' => $this->buildRegionalDailyTrend(),
+            'reps' => $reps,
         ];
     }
 
@@ -345,14 +325,58 @@ class SalesReportController extends Controller
         return mt_rand($min, $max);
     }
 
+    private function buildRegionalDailyTrend(): array
+    {
+        $now = $this->getNow();
+        $days = 14;
+        $start = $now->copy()->subDays($days - 1);
+        $labels = [];
+        for ($c = $start->copy(); $c->lte($now); $c->addDay()) {
+            $labels[] = $c->format('M j');
+        }
+
+        $series = [];
+        foreach (Region::all() as $region) {
+            $daily = SalesOrder::where('region_id', $region->id)
+                ->where('status', '!=', 'cancelled')
+                ->whereBetween('order_date', [$start->format('Y-m-d'), $now->format('Y-m-d')])
+                ->selectRaw('order_date, SUM(amount) as total')
+                ->groupBy('order_date')
+                ->pluck('total', 'order_date')
+                ->mapWithKeys(fn($v, $k) => [Carbon::parse($k)->format('Y-m-d') => (float) $v])
+                ->all();
+
+            $values = [];
+            for ($c = $start->copy(); $c->lte($now); $c->addDay()) {
+                $values[] = round($daily[$c->format('Y-m-d')] ?? 0);
+            }
+
+            $bestIndex = $values ? array_keys($values, max($values))[0] : 0;
+            $series[$region->name] = [
+                'data' => $values,
+                'color' => $region->color,
+                'stats' => [
+                    'bestLabel' => $labels[$bestIndex] ?? '',
+                    'bestValue' => $values[$bestIndex] ?? 0,
+                    'average' => count($values) ? round(array_sum($values) / count($values)) : 0,
+                    'total' => array_sum($values),
+                ],
+            ];
+        }
+        return ['labels' => $labels, 'series' => $series];
+    }
+
     private function productRegionSplit(int $productId, Collection $regions): array
     {
-        $totals = Sale::where('product_id', $productId)
-            ->selectRaw('region_id, SUM(amount) as total')
-            ->groupBy('region_id')
+        $product = Product::find($productId);
+        $totals = SalesOrder::join('sales_order_items', 'sales_orders.id', '=', 'sales_order_items.sales_order_id')
+            ->where('sales_order_items.item_name', $product->name)
+            ->where('sales_orders.status', '!=', 'cancelled')
+            ->selectRaw('sales_orders.region_id, SUM(sales_order_items.qty * sales_order_items.price) as total')
+            ->groupBy('sales_orders.region_id')
             ->pluck('total', 'region_id');
-        $sum = $totals->sum();
 
+        $sum = $totals->sum();
         $result = [];
         foreach ($regions as $region) {
             $val = $totals[$region['id']] ?? 0;
@@ -363,9 +387,12 @@ class SalesReportController extends Controller
 
     private function topRepsForProduct(int $productId, int $limit = 2): array
     {
-        return Sale::where('product_id', $productId)
-            ->join('representatives', 'sales.representative_id', '=', 'representatives.id')
-            ->selectRaw('representatives.name as name, SUM(sales.amount) as total')
+        $product = Product::find($productId);
+        return SalesOrder::join('sales_order_items', 'sales_orders.id', '=', 'sales_order_items.sales_order_id')
+            ->join('representatives', 'sales_orders.representative_id', '=', 'representatives.id')
+            ->where('sales_order_items.item_name', $product->name)
+            ->where('sales_orders.status', '!=', 'cancelled')
+            ->selectRaw('representatives.name as name, SUM(sales_order_items.qty * sales_order_items.price) as total')
             ->groupBy('representatives.name')
             ->orderByDesc('total')
             ->limit($limit)
@@ -376,53 +403,58 @@ class SalesReportController extends Controller
     private function productMonthlyTrend(int $productId, int $months = 6): array
     {
         $now = $this->getNow();
+        $product = Product::find($productId);
         $values = [];
         for ($i = $months - 1; $i >= 0; $i--) {
             $start = $now->copy()->subMonths($i)->startOfMonth();
             $end = $now->copy()->subMonths($i)->endOfMonth();
-            $values[] = round(Sale::where('product_id', $productId)
-                ->whereBetween('sale_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
-                ->sum('amount'));
+            $values[] = round(SalesOrder::join('sales_order_items', 'sales_orders.id', '=', 'sales_order_items.sales_order_id')
+                ->where('sales_order_items.item_name', $product->name)
+                ->where('sales_orders.status', '!=', 'cancelled')
+                ->whereBetween('sales_orders.order_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+                ->sum(\DB::raw('sales_order_items.qty * sales_order_items.price')));
         }
         return $values;
     }
 
     private function topProductsInRegion(int $regionId, int $limit = 3): array
     {
-        return Sale::where('region_id', $regionId)
-            ->join('products', 'sales.product_id', '=', 'products.id')
-            ->selectRaw('products.name as name, SUM(sales.amount) as value')
-            ->groupBy('products.name')
+        return SalesOrderItem::join('sales_orders', 'sales_order_items.sales_order_id', '=', 'sales_orders.id')
+            ->where('sales_orders.region_id', $regionId)
+            ->where('sales_orders.status', '!=', 'cancelled')
+            ->selectRaw('sales_order_items.item_name as name, SUM(sales_order_items.qty * sales_order_items.price) as value')
+            ->groupBy('sales_order_items.item_name')
             ->orderByDesc('value')
             ->limit($limit)
             ->get()
-            ->map(fn ($row) => ['name' => $row->name, 'value' => round($row->value)])
+            ->map(fn($row) => ['name' => $row->name, 'value' => round($row->value)])
             ->all();
     }
 
     private function productMixForRep(int $repId, int $limit = 3): array
     {
-        $repTotal = Sale::where('representative_id', $repId)->sum('amount');
-
-        return Sale::where('representative_id', $repId)
-            ->join('products', 'sales.product_id', '=', 'products.id')
-            ->selectRaw('products.name as name, SUM(sales.amount) as total')
-            ->groupBy('products.name')
+        $repTotal = SalesOrder::where('representative_id', $repId)->where('status', '!=', 'cancelled')->sum('amount');
+        return SalesOrderItem::join('sales_orders', 'sales_order_items.sales_order_id', '=', 'sales_orders.id')
+            ->where('sales_orders.representative_id', $repId)
+            ->where('sales_orders.status', '!=', 'cancelled')
+            ->selectRaw('sales_order_items.item_name as name, SUM(sales_order_items.qty * sales_order_items.price) as total')
+            ->groupBy('sales_order_items.item_name')
             ->orderByDesc('total')
             ->limit($limit)
             ->get()
-            ->map(fn ($row) => ['name' => $row->name, 'percent' => $repTotal > 0 ? round(($row->total / $repTotal) * 100) : 0])
+            ->map(fn($row) => ['name' => $row->name, 'percent' => $repTotal > 0 ? round(($row->total / $repTotal) * 100) : 0])
             ->all();
     }
 
     private function coverageForRep(int $repId, Collection $regions): array
     {
-        $totals = Sale::where('representative_id', $repId)
+        $totals = SalesOrder::where('representative_id', $repId)
+            ->where('status', '!=', 'cancelled')
             ->selectRaw('region_id, SUM(amount) as total')
             ->groupBy('region_id')
             ->pluck('total', 'region_id');
-        $sum = $totals->sum();
 
+        $sum = $totals->sum();
         $result = [];
         foreach ($regions as $region) {
             $val = $totals[$region['id']] ?? 0;
@@ -438,8 +470,9 @@ class SalesReportController extends Controller
         for ($i = $months - 1; $i >= 0; $i--) {
             $start = $now->copy()->subMonths($i)->startOfMonth();
             $end = $now->copy()->subMonths($i)->endOfMonth();
-            $values[] = round(Sale::where('representative_id', $repId)
-                ->whereBetween('sale_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+            $values[] = round(SalesOrder::where('representative_id', $repId)
+                ->where('status', '!=', 'cancelled')
+                ->whereBetween('order_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
                 ->sum('amount'));
         }
         return $values;
@@ -461,8 +494,8 @@ class SalesReportController extends Controller
         $data['reportKey'] = 'product';
         $data['stats'] = [
             'totalProducts' => $data['products']->count(),
-            'bestCategory'  => $data['products']->groupBy('category')->map->sum('actual')->sortDesc()->keys()->first(),
-            'totalRevenue'  => $data['products']->sum('actual'),
+            'bestCategory' => $data['products']->groupBy('category')->map->sum('actual')->sortDesc()->keys()->first(),
+            'totalRevenue' => $data['products']->sum('actual'),
         ];
 
         return view('reports.product-detail', $data);
@@ -510,11 +543,12 @@ class SalesReportController extends Controller
 
         $format = $request->query('format');
         $report = $request->query('report');
-        $data   = $this->getData();
+
+        $data = $this->getData();
 
         return match ($format) {
-            'csv'   => $this->exportCsv($report, $data),
-            'pdf'   => $this->exportPdf($report, $data),
+            'csv' => $this->exportCsv($report, $data),
+            'pdf' => $this->exportPdf($report, $data),
             'excel' => $this->exportExcel($report, $data),
         };
     }
@@ -566,7 +600,6 @@ class SalesReportController extends Controller
             'report' => $report,
             ...$data,
         ]);
-
         return $pdf->download("sales-report-{$report}.pdf");
     }
 
