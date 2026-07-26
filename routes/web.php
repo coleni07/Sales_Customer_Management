@@ -41,7 +41,7 @@ Route::get('/customers', [CustomerController::class, 'index'])->name('customers.
 Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
 Route::get('/purchase-history', [PurchaseHistoryController::class, 'index'])->name('purchase-history.index');
 
-// Reports Module (Explicitly matching Blade view calls: route('reports.sales'))
+// Reports Module
 Route::controller(SalesReportController::class)->prefix('reports/sales')->group(function () {
     Route::get('/', 'index')->name('reports.sales');
     Route::get('/export', 'export')->name('reports.sales.export');
