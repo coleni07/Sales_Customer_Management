@@ -4,8 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Customer;
 use App\Models\Campaign;
-use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
 use App\Models\Ticket;
@@ -18,9 +16,23 @@ class DatabaseSeeder extends Seeder
      * Pool of realistic product names to pull from when generating items for an order.
      */
     private array $productPool = [
-        'Battery', 'Mouse', 'Mouse Pad', 'Keyboard', 'Speaker', 'Camera',
-        'Watch', 'Charger', 'Headphones', 'Monitor', 'Webcam', 'Microphone',
-        'Router', 'Power Bank', 'Flash Drive', 'HDMI Cable', 'Laptop Stand',
+        'Battery',
+        'Mouse',
+        'Mouse Pad',
+        'Keyboard',
+        'Speaker',
+        'Camera',
+        'Watch',
+        'Charger',
+        'Headphones',
+        'Monitor',
+        'Webcam',
+        'Microphone',
+        'Router',
+        'Power Bank',
+        'Flash Drive',
+        'HDMI Cable',
+        'Laptop Stand',
     ];
 
     /**
@@ -31,7 +43,7 @@ class DatabaseSeeder extends Seeder
     {
         $count = random_int(2, 6);
         $products = collect($this->productPool)->shuffle()->take($count)->values();
-        $weights = collect(range(1, $count))->map(fn () => random_int(10, 100));
+        $weights = collect(range(1, $count))->map(fn() => random_int(10, 100));
         $weightSum = $weights->sum();
 
         $remaining = $order->subtotal;
@@ -59,26 +71,28 @@ class DatabaseSeeder extends Seeder
         // to the Customers module — merged in here so it's the SAME customer
         // row used by Sales Orders/Tickets, not a duplicate set.
         $customerDetails = [
-            'Juan Dela Cruz'   => ['code' => 'CUST-001', 'location' => 'Brgy., Hugo Perez',  'phone' => '09178465394', 'total_orders' => 12, 'status' => 'Active'],
-            'Maria Santos'     => ['code' => 'CUST-002', 'location' => 'Brgy., San Agustin', 'phone' => '09458132647', 'total_orders' => 10, 'status' => 'Active'],
-            'Kevin Reyes'      => ['code' => 'CUST-003', 'location' => 'Brgy., Gregorio',    'phone' => '09458692475', 'total_orders' => 8,  'status' => 'Inactive'],
-            'Ana Garcia'       => ['code' => 'CUST-004', 'location' => 'Brgy., Luciano',     'phone' => '09458361274', 'total_orders' => 11, 'status' => 'Active'],
-            'Luiz Mendoza'     => ['code' => 'CUST-005', 'location' => 'Brgy., De Ocampo',   'phone' => '09458632147', 'total_orders' => 13, 'status' => 'Active'],
-            'Sofie Lopez'      => ['code' => 'CUST-006', 'location' => 'Brgy., Cabuco',      'phone' => '09546321486', 'total_orders' => 5,  'status' => 'Active'],
-            'Eloise Briderton' => ['code' => 'CUST-007', 'location' => 'Brgy., Lapidario',   'phone' => '09654832156', 'total_orders' => 7,  'status' => 'Inactive'],
+            'Juan Dela Cruz' => ['code' => 'CUST-001', 'location' => 'Brgy., Hugo Perez', 'phone' => '09178465394', 'total_orders' => 12, 'status' => 'Active'],
+            'Maria Santos' => ['code' => 'CUST-002', 'location' => 'Brgy., San Agustin', 'phone' => '09458132647', 'total_orders' => 10, 'status' => 'Active'],
+            'Kevin Reyes' => ['code' => 'CUST-003', 'location' => 'Brgy., Gregorio', 'phone' => '09458692475', 'total_orders' => 8, 'status' => 'Inactive'],
+            'Ana Garcia' => ['code' => 'CUST-004', 'location' => 'Brgy., Luciano', 'phone' => '09458361274', 'total_orders' => 11, 'status' => 'Active'],
+            'Luiz Mendoza' => ['code' => 'CUST-005', 'location' => 'Brgy., De Ocampo', 'phone' => '09458632147', 'total_orders' => 13, 'status' => 'Active'],
+            'Sofie Lopez' => ['code' => 'CUST-006', 'location' => 'Brgy., Cabuco', 'phone' => '09546321486', 'total_orders' => 5, 'status' => 'Active'],
+            'Eloise Briderton' => ['code' => 'CUST-007', 'location' => 'Brgy., Lapidario', 'phone' => '09654832156', 'total_orders' => 7, 'status' => 'Inactive'],
         ];
 
         $names = array_keys($customerDetails);
         $customers = collect($names)->mapWithKeys(function ($name) use ($customerDetails) {
             $d = $customerDetails[$name];
-            return [$name => Customer::factory()->create([
-                'name' => $name,
-                'customer_code' => $d['code'],
-                'location' => $d['location'],
-                'phone' => $d['phone'],
-                'total_orders' => $d['total_orders'],
-                'status' => $d['status'],
-            ])];
+            return [
+                $name => Customer::factory()->create([
+                    'name' => $name,
+                    'customer_code' => $d['code'],
+                    'location' => $d['location'],
+                    'phone' => $d['phone'],
+                    'total_orders' => $d['total_orders'],
+                    'status' => $d['status'],
+                ])
+            ];
         });
 
         // ---- Sales orders matching the "Sales Orders" screen ----
@@ -199,48 +213,6 @@ class DatabaseSeeder extends Seeder
 
         // ---- Support System module (integrated from the SCM sub-module) ----
         $this->call(SupportTicketSeeder::class);
-
-        // ---- Customers module: purchase history orders ----
-        // First order matches the teammate's original seed data exactly.
-        $order = Order::create([
-            'customer_id' => $customers['Juan Dela Cruz']->id,
-            'order_number' => '12345678',
-            'payment_date' => '2026-06-18',
-        ]);
-        $juanItems = [
-            ['product_name' => 'Marshall Speaker', 'store_name' => 'Mar Studios', 'quantity' => 1, 'price' => 23402.00, 'icon' => 'fa-volume-high', 'status' => 'delivered', 'expected_delivery' => '2026-03-23'],
-            ['product_name' => 'Fujifilm XF10', 'store_name' => 'Cams Studios', 'quantity' => 1, 'price' => 39169.00, 'icon' => 'fa-camera', 'status' => 'delivered', 'expected_delivery' => '2026-03-23'],
-            ['product_name' => 'Marshall Wireless Headphones', 'store_name' => 'Mar Studios', 'quantity' => 1, 'price' => 9668.00, 'icon' => 'fa-headphones-simple', 'status' => 'cancelled', 'expected_delivery' => '2026-03-26'],
-        ];
-        foreach ($juanItems as $item) {
-            OrderItem::create(['order_id' => $order->id, ...$item]);
-        }
-
-        // A few more orders across other named customers, for a fuller demo
-        // of the purchase-history filters (All / Completed / Cancelled).
-        $moreOrders = [
-            ['cust' => 'Maria Santos', 'order_number' => '20450112', 'payment_date' => '2026-06-02', 'items' => [
-                ['product_name' => 'Logitech Wireless Mouse', 'store_name' => 'Click Hub', 'quantity' => 2, 'price' => 1250.00, 'icon' => 'fa-computer-mouse', 'status' => 'delivered', 'expected_delivery' => '2026-06-08'],
-                ['product_name' => 'Mechanical Keyboard', 'store_name' => 'Click Hub', 'quantity' => 1, 'price' => 3499.00, 'icon' => 'fa-keyboard', 'status' => 'delivered', 'expected_delivery' => '2026-06-08'],
-            ]],
-            ['cust' => 'Kevin Reyes', 'order_number' => '20450198', 'payment_date' => '2026-05-20', 'items' => [
-                ['product_name' => 'Canon EOS M50', 'store_name' => 'Cams Studios', 'quantity' => 1, 'price' => 42990.00, 'icon' => 'fa-camera-retro', 'status' => 'cancelled', 'expected_delivery' => '2026-05-27'],
-            ]],
-            ['cust' => 'Ana Garcia', 'order_number' => '20450233', 'payment_date' => '2026-06-10', 'items' => [
-                ['product_name' => 'Smart Watch Series 5', 'store_name' => 'Time Zone', 'quantity' => 1, 'price' => 8990.00, 'icon' => 'fa-clock', 'status' => 'delivered', 'expected_delivery' => '2026-06-15'],
-            ]],
-        ];
-
-        foreach ($moreOrders as $o) {
-            $order = Order::create([
-                'customer_id' => $customers[$o['cust']]->id,
-                'order_number' => $o['order_number'],
-                'payment_date' => $o['payment_date'],
-            ]);
-            foreach ($o['items'] as $item) {
-                OrderItem::create(['order_id' => $order->id, ...$item]);
-            }
-        }
 
         // ---- Sales Report module: teammate's own seeder (regions, products, representatives, ~200 days of sales) ----
         $this->call(SalesReportSeeder::class);

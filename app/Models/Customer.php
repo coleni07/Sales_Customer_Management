@@ -12,16 +12,6 @@ class Customer extends Model
 
     protected $fillable = ['customer_code', 'name', 'email', 'phone', 'address', 'location', 'total_orders', 'status'];
 
-    public function salesOrders(): HasMany
-    {
-        return $this->hasMany(SalesOrder::class);
-    }
-
-    public function tickets(): HasMany
-    {
-        return $this->hasMany(Ticket::class);
-    }
-
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
