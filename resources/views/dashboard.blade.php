@@ -80,14 +80,20 @@
                         <tbody>
                             @foreach ($recentOrders as $order)
                                 <tr class="border-b border-slate-50 hover:bg-slate-50">
-                                    <td class="py-2.5"><a href="{{ route('sales-orders.index') }}"
-                                            class="text-brand-dark font-medium hover:underline">{{ $order->order_no }}</a></td>
+                                    <td class="py-2.5">
+                                        <a href="{{ route('sales-orders.index', ['highlight' => $order->id]) }}"
+                                            class="text-brand-dark font-medium hover:underline">
+                                            {{ $order->order_no }}
+                                        </a>
+                                    </td>
                                     <td class="py-2.5">{{ $order->customer->name }}</td>
-                                    <td class="py-2.5">{{ $order->items->first()->item_name ?? '—' }}</td>
-                                    <td class="py-2.5">₱{{ number_format($order->amount, 2) }}</td>
+                                    <td class="py-2.5">{{ $order->items->first()?->product?->name ?? '—' }}</td>
+                                    <td class="py-2.5">₱ {{ number_format($order->amount, 2) }}</td>
                                     <td class="py-2.5">
                                         <span
-                                            class="badge-in text-xs px-2.5 py-1 rounded-full font-medium {{ $order->statusColor() }}">{{ ucfirst($order->status) }}</span>
+                                            class="badge-in text-xs px-2.5 py-1 rounded-full font-medium {{ $order->statusColor() }}">
+                                            {{ ucfirst($order->status) }}
+                                        </span>
                                     </td>
                                 </tr>
                             @endforeach

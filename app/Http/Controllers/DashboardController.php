@@ -119,7 +119,7 @@ class DashboardController extends Controller
         );
 
         // ---- Tables ----
-        $recentOrders = SalesOrder::with('customer')->latest('order_date')->latest('id')->take(5)->get();
+        $recentOrders = SalesOrder::with(['customer', 'items.product'])->latest('order_date')->latest('id')->take(5)->get();
         $latestTickets = Ticket::with('customer')->latest()->take(5)->get();
 
         return view('dashboard', compact(
