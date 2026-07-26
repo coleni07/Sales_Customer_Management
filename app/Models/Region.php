@@ -17,8 +17,9 @@ class Region extends Model
         return $this->hasMany(Representative::class);
     }
 
-    public function sales(): HasMany
+
+    public function salesOrders(): HasMany
     {
-        return $this->hasMany(Sale::class);
+        return $this->hasMany(SalesOrder::class);
     }
 }

@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\SupportFeedback;
-use App\Models\SupportTicket;
+use App\Models\Ticket;
 use Illuminate\Http\Request;
 
 class SupportFeedbackController extends Controller
 {
-    public function create(SupportTicket $ticket)
+    public function create(Ticket $ticket)
     {
         return view('support.feedback', compact('ticket'));
     }
@@ -16,7 +16,7 @@ class SupportFeedbackController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'ticket_id' => 'required|exists:support_tickets,id',
+            'ticket_id' => 'required|exists:tickets,id', // Changed table reference
             'title' => 'required|string|max:255',
             'description' => 'required|string',
         ]);

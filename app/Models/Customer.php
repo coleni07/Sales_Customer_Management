@@ -12,10 +12,11 @@ class Customer extends Model
 
     protected $fillable = ['customer_code', 'name', 'email', 'phone', 'address', 'location', 'total_orders', 'status'];
 
-    public function salesOrders(): HasMany
+    public function orders(): HasMany
     {
         return $this->hasMany(SalesOrder::class);
     }
+
 
     public function tickets(): HasMany
     {
@@ -77,3 +78,5 @@ class Customer extends Model
         return substr($digits, 0, 4) . '-***';
     }
 }
+
+ 

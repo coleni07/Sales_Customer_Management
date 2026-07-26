@@ -5,33 +5,29 @@
 
     @if (session('success'))
         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)" x-transition
-             class="mb-6 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl px-5 py-3 text-sm font-medium">
+            class="mb-6 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl px-5 py-3 text-sm font-medium">
             <i class="fa-solid fa-circle-check"></i>
             {{ session('success') }}
         </div>
     @endif
 
     @php
-        // Lightweight JSON snapshot of the tickets for the Alpine.js table
-        // below. Badge classes are precomputed here (via the existing model
-        // helpers) so the JS side never has to re-implement that logic.
-        $ticketsData = $tickets->map(fn ($t) => [
+        $ticketsData = $tickets->map(fn($t) => [
             'id' => $t->id,
             'code' => $t->code(),
             'customer_name' => $t->customer_name,
             'subject' => $t->subject,
             'description' => $t->description,
-            'priority' => $t->priority,
+            'priority' => $t->priorityLabel(),
             'priority_badge' => $t->priorityBadgeClasses(),
-            'status' => $t->status,
+            'status' => $t->statusLabel(),
             'status_badge' => $t->statusBadgeClasses(),
-            'assigned_to' => $t->assigned_to,
+            'assigned_to' => $t->assigned_to ?? 'Unassigned',
             'created_at' => optional($t->created_at)->toIso8601String(),
         ])->values();
     @endphp
 
-    <div
-        x-data="{
+    <div x-data="{
             selected: null,
             quickView: null,
             search: '',
@@ -90,9 +86,6 @@
                 }[this.sortBy];
             },
             init() {
-                // Deep-link support: /support?ticket=5 auto-opens that
-                // ticket's detail panel, so notification links can jump
-                // straight to the relevant record instead of just the page.
                 const params = new URLSearchParams(window.location.search);
                 const ticketId = params.get('ticket');
                 if (ticketId) {
@@ -105,9 +98,7 @@
                     });
                 }
             }
-        }"
-        x-init="init()"
-        class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+        }" x-init="init()" class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
 
         <!-- Ticket list -->
         <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
@@ -116,42 +107,42 @@
                 <div class="relative flex-1 max-w-md">
                     <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
                     <input type="text" x-model="search" @input="page = 1" placeholder="Search Ticket ID, Customer"
-                           class="w-full bg-gray-100 rounded-full pl-11 pr-4 py-2.5 text-sm text-gray-600 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-navy/30">
+                        class="w-full bg-gray-100 rounded-full pl-11 pr-4 py-2.5 text-sm text-gray-600 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-navy/30">
                 </div>
 
                 <div class="relative" @click.outside="showFilter = false">
                     <button type="button" @click="showFilter = !showFilter"
-                            class="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 transition rounded-full px-5 py-2.5 text-sm font-medium text-gray-700">
+                        class="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 transition rounded-full px-5 py-2.5 text-sm font-medium text-gray-700">
                         <i class="fa-solid fa-filter"></i>
                         <span x-text="sortLabel()"></span>
                         <i class="fa-solid fa-chevron-down text-xs"></i>
                     </button>
 
                     <div x-show="showFilter" x-cloak x-transition
-                         class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-10 text-sm">
+                        class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-10 text-sm">
                         <button type="button" @click="sortBy = 'az'; showFilter = false; page = 1"
-                                class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
-                                :class="sortBy === 'az' ? 'text-brand font-semibold' : 'text-gray-700'">
+                            class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                            :class="sortBy === 'az' ? 'text-brand font-semibold' : 'text-gray-700'">
                             <i class="fa-solid fa-arrow-down-a-z w-4"></i> A - Z
                         </button>
                         <button type="button" @click="sortBy = 'za'; showFilter = false; page = 1"
-                                class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
-                                :class="sortBy === 'za' ? 'text-brand font-semibold' : 'text-gray-700'">
+                            class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                            :class="sortBy === 'za' ? 'text-brand font-semibold' : 'text-gray-700'">
                             <i class="fa-solid fa-arrow-down-z-a w-4"></i> Z - A
                         </button>
                         <button type="button" @click="sortBy = 'date_new'; showFilter = false; page = 1"
-                                class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
-                                :class="sortBy === 'date_new' ? 'text-brand font-semibold' : 'text-gray-700'">
+                            class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                            :class="sortBy === 'date_new' ? 'text-brand font-semibold' : 'text-gray-700'">
                             <i class="fa-solid fa-calendar w-4"></i> Date: Newest first
                         </button>
                         <button type="button" @click="sortBy = 'date_old'; showFilter = false; page = 1"
-                                class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
-                                :class="sortBy === 'date_old' ? 'text-brand font-semibold' : 'text-gray-700'">
+                            class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                            :class="sortBy === 'date_old' ? 'text-brand font-semibold' : 'text-gray-700'">
                             <i class="fa-solid fa-calendar w-4"></i> Date: Oldest first
                         </button>
                         <hr class="my-2 border-gray-100">
                         <button type="button" @click="sortBy = 'default'; showFilter = false; page = 1"
-                                class="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-500">
+                            class="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-500">
                             <i class="fa-solid fa-rotate-left w-4"></i> Reset
                         </button>
                     </div>
@@ -173,8 +164,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         <template x-for="ticket in paginatedTickets" :key="ticket.id">
-                            <tr @click="selected = ticket.id"
-                                :id="'ticket-row-' + ticket.id"
+                            <tr @click="selected = ticket.id" :id="'ticket-row-' + ticket.id"
                                 :class="selected === ticket.id ? 'bg-brand/5' : ''"
                                 class="hover:bg-gray-50 transition cursor-pointer">
                                 <td class="px-5 py-4 font-semibold text-gray-800" x-text="ticket.code"></td>
@@ -182,17 +172,16 @@
                                 <td class="px-5 py-4 text-gray-700" x-text="ticket.subject"></td>
                                 <td class="px-5 py-4">
                                     <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full"
-                                          :class="ticket.priority_badge" x-text="ticket.priority"></span>
+                                        :class="ticket.priority_badge" x-text="ticket.priority"></span>
                                 </td>
                                 <td class="px-5 py-4">
                                     <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full"
-                                          :class="ticket.status_badge" x-text="ticket.status"></span>
+                                        :class="ticket.status_badge" x-text="ticket.status"></span>
                                 </td>
                                 <td class="px-5 py-4 text-gray-700" x-text="ticket.assigned_to"></td>
                                 <td class="px-5 py-4 text-center">
-                                    <button type="button" @click.stop="quickView = ticket"
-                                            title="Quick view"
-                                            class="text-gray-600 hover:text-brand transition inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100">
+                                    <button type="button" @click.stop="quickView = ticket" title="Quick view"
+                                        class="text-gray-600 hover:text-brand transition inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100">
                                         <i class="fa-regular fa-eye"></i>
                                     </button>
                                 </td>
@@ -215,25 +204,26 @@
 
             <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mt-4 text-sm text-gray-500">
                 <span>
-                    Showing <span x-text="filteredTickets.length === 0 ? 0 : ((page - 1) * perPage) + 1"></span>-<span x-text="Math.min(page * perPage, filteredTickets.length)"></span>
+                    Showing <span x-text="filteredTickets.length === 0 ? 0 : ((page - 1) * perPage) + 1"></span>-<span
+                        x-text="Math.min(page * perPage, filteredTickets.length)"></span>
                     out of <span x-text="filteredTickets.length"></span> entries
                 </span>
 
                 <div class="flex items-center gap-1" x-show="totalPages > 1">
                     <button type="button" @click="goToPage(page - 1)" :disabled="page === 1"
-                            class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                        class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
                         <i class="fa-solid fa-chevron-left text-xs"></i>
                     </button>
 
                     <template x-for="n in pageNumbers" :key="n">
                         <button type="button" @click="goToPage(n)"
-                                class="w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium"
-                                :class="page === n ? 'bg-brand text-white' : 'text-gray-600 hover:bg-gray-100'"
-                                x-text="n"></button>
+                            class="w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium"
+                            :class="page === n ? 'bg-brand text-white' : 'text-gray-600 hover:bg-gray-100'"
+                            x-text="n"></button>
                     </template>
 
                     <button type="button" @click="goToPage(page + 1)" :disabled="page === totalPages"
-                            class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                        class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
                         <i class="fa-solid fa-chevron-right text-xs"></i>
                     </button>
                 </div>
@@ -261,23 +251,25 @@
 
                     <p class="text-xs font-semibold text-gray-500 uppercase">Priority</p>
                     <p class="mb-3">
-                        <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full {{ $ticket->priorityBadgeClasses() }}">
-                            {{ $ticket->priority }}
+                        <span
+                            class="inline-block text-xs font-semibold px-3 py-1 rounded-full {{ $ticket->priorityBadgeClasses() }}">
+                            {{ $ticket->priorityLabel() }}
                         </span>
                     </p>
 
                     <p class="text-xs font-semibold text-gray-500 uppercase">Status</p>
                     <p class="mb-3">
-                        <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full {{ $ticket->statusBadgeClasses() }}">
-                            {{ $ticket->status }}
+                        <span
+                            class="inline-block text-xs font-semibold px-3 py-1 rounded-full {{ $ticket->statusBadgeClasses() }}">
+                            {{ $ticket->statusLabel() }}
                         </span>
                     </p>
 
                     <p class="text-xs font-semibold text-gray-500 uppercase">Assigned To</p>
-                    <p class="text-sm text-gray-800 mb-3">{{ $ticket->assigned_to }}</p>
+                    <p class="text-sm text-gray-800 mb-3">{{ $ticket->assigned_to ?? 'Unassigned' }}</p>
 
                     <p class="text-xs font-semibold text-gray-500 uppercase">Date</p>
-                    <p class="text-sm text-gray-800 mb-3">{{ $ticket->created_at->format('M d, Y') }}</p>
+                    <p class="text-sm text-gray-800 mb-3">{{ optional($ticket->created_at)->format('M d, Y') ?? '—' }}</p>
 
                     <hr class="mb-4 border-gray-200">
 
@@ -285,7 +277,7 @@
                     <p class="text-sm text-gray-600 mb-4 flex-1">{{ $ticket->description }}</p>
 
                     <a href="{{ route('support.feedback.create', $ticket) }}"
-                       class="mt-auto block text-center bg-brand hover:bg-brand-dark transition text-white font-semibold rounded-full px-6 py-2.5 text-sm">
+                        class="mt-auto block text-center bg-brand hover:bg-brand-dark transition text-white font-semibold rounded-full px-6 py-2.5 text-sm">
                         Answer Invoice
                     </a>
                 </div>
@@ -300,65 +292,62 @@
             </div>
         </div>
 
-    <!-- Quick-view modal (opened via the eye button) -->
-    <div x-show="quickView !== null" x-cloak
-         x-transition.opacity
-         class="fixed inset-0 z-50 flex items-center justify-center p-4"
-         style="background: rgba(15, 23, 42, 0.45);"
-         @click.self="quickView = null"
-         @keydown.escape.window="quickView = null">
-        <div x-show="quickView !== null" x-transition
-             class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" @click.stop>
-            <template x-if="quickView">
-                <div>
-                    <div class="flex items-start justify-between mb-4">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-500 uppercase" x-text="quickView.code"></p>
-                            <h4 class="text-lg font-bold text-slate-800" x-text="quickView.subject"></h4>
+        <!-- Quick-view modal (opened via the eye button) -->
+        <div x-show="quickView !== null" x-cloak x-transition.opacity
+            class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(15, 23, 42, 0.45);"
+            @click.self="quickView = null" @keydown.escape.window="quickView = null">
+            <div x-show="quickView !== null" x-transition class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
+                @click.stop>
+                <template x-if="quickView">
+                    <div>
+                        <div class="flex items-start justify-between mb-4">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-500 uppercase" x-text="quickView.code"></p>
+                                <h4 class="text-lg font-bold text-slate-800" x-text="quickView.subject"></h4>
+                            </div>
+                            <button type="button" @click="quickView = null" class="text-gray-400 hover:text-gray-600">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
                         </div>
-                        <button type="button" @click="quickView = null" class="text-gray-400 hover:text-gray-600">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
 
-                    <div class="flex items-center gap-2 mb-4">
-                        <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full"
-                              :class="quickView.priority_badge" x-text="quickView.priority"></span>
-                        <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full"
-                              :class="quickView.status_badge" x-text="quickView.status"></span>
-                    </div>
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full"
+                                :class="quickView.priority_badge" x-text="quickView.priority"></span>
+                            <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full"
+                                :class="quickView.status_badge" x-text="quickView.status"></span>
+                        </div>
 
-                    <dl class="space-y-3 text-sm">
-                        <div>
-                            <dt class="text-xs font-semibold text-gray-500 uppercase">Customer</dt>
-                            <dd class="text-gray-800" x-text="quickView.customer_name"></dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs font-semibold text-gray-500 uppercase">Assigned To</dt>
-                            <dd class="text-gray-800" x-text="quickView.assigned_to || '—'"></dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs font-semibold text-gray-500 uppercase">Description</dt>
-                            <dd class="text-gray-600" x-text="quickView.description"></dd>
-                        </div>
-                    </dl>
+                        <dl class="space-y-3 text-sm">
+                            <div>
+                                <dt class="text-xs font-semibold text-gray-500 uppercase">Customer</dt>
+                                <dd class="text-gray-800" x-text="quickView.customer_name"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-semibold text-gray-500 uppercase">Assigned To</dt>
+                                <dd class="text-gray-800" x-text="quickView.assigned_to || '—'"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-semibold text-gray-500 uppercase">Description</dt>
+                                <dd class="text-gray-600" x-text="quickView.description"></dd>
+                            </div>
+                        </dl>
 
-                    <div class="flex gap-3 mt-6">
-                        <button type="button"
+                        <div class="flex gap-3 mt-6">
+                            <button type="button"
                                 @click="selected = quickView.id; quickView = null;
-                                        $nextTick(() => document.getElementById('ticket-row-' + selected)?.scrollIntoView({ behavior: 'smooth', block: 'center' }))"
+                                            $nextTick(() => document.getElementById('ticket-row-' + selected)?.scrollIntoView({ behavior: 'smooth', block: 'center' }))"
                                 class="flex-1 text-center bg-brand hover:bg-brand-dark transition text-white font-semibold rounded-full px-6 py-2.5 text-sm">
-                            View Full Details
-                        </button>
-                        <button type="button" @click="quickView = null"
+                                View Full Details
+                            </button>
+                            <button type="button" @click="quickView = null"
                                 class="flex-1 text-center bg-gray-100 hover:bg-gray-200 transition text-gray-700 font-semibold rounded-full px-6 py-2.5 text-sm">
-                            Close
-                        </button>
+                                Close
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </template>
+                </template>
+            </div>
         </div>
-    </div>
 
     </div>
 

@@ -9,57 +9,84 @@ class SalesOrderController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = 7;
-
-        // A notification link passes ?highlight=<id> to point at one specific
-        // order. That order can live on any page of the listing (it's just
-        // "the 3 latest pending orders", not necessarily page 1), so we work
-        // out which page it actually falls on and jump the pagination there
-        // — otherwise the detail panel would show an order that never
-        // appears as a row in the table at all.
-        $highlightId = $request->query('highlight');
-
-        if ($highlightId && ! $request->query('page')) {
-            $orderedIds = SalesOrder::orderByDesc('order_date')->orderByDesc('id')->pluck('id');
-            $position = $orderedIds->search((int) $highlightId);
-
-            if ($position !== false) {
-                $request->query->set('page', intdiv($position, $perPage) + 1);
-            }
-        }
-
+        // Full list, not paginated server-side — the table now does live
+        // search/sort/pagination entirely in the browser (same pattern as
+        // the Support System page), so the search box can filter across
+        // every order instantly as the user types, not just the current page.
         $orders = SalesOrder::with('customer')
             ->latest('order_date')
             ->latest('id')
-            ->paginate($perPage)
-            ->withQueryString();
+            ->get();
+
+        $ordersData = $orders->map(fn ($order) => [
+            'id' => $order->id,
+            'order_no' => $order->order_no,
+            'customer_name' => $order->customer->name,
+            'amount' => (float) $order->amount,
+            'amount_label' => number_format($order->amount, 2),
+            'status' => $order->status,
+            'status_label' => ucfirst($order->status),
+            'status_classes' => $order->statusColor(),
+            'payment_label' => $order->paymentLabel(),
+            'order_date' => $order->order_date?->toIso8601String(),
+        ])->values();
 
         // Status tracking summary cards (Pending / Processing / Shipped / Delivered)
-        $statusSummary = collect(['pending', 'processing', 'shipped', 'delivered'])->map(function ($status) {
+        $statusSummary = collect(['pending', 'processing', 'shipped', 'delivered', 'cancelled'])->map(function ($status) {
             return [
                 'status' => $status,
-                'count' => SalesOrder::where('status', $status)->count(),
-                'total' => SalesOrder::where('status', $status)->sum('amount'),
+                'count' => SalesOrder::where('status', $status)
+                    ->count(),
+                'total' => (float) SalesOrder::where('status', $status)
+                    ->sum('amount'),
             ];
         });
 
         $approvedCount = SalesOrder::where('approval_status', 'approved')->count();
         $unapprovedCount = SalesOrder::where('approval_status', 'unapproved')->count();
 
-        // Default selected order = the highlighted order (from a notification
-        // link) when it's present on this page, otherwise the first row on
-        // the page (mirrors the design) — so the detail panel always matches
-        // a row that's actually visible in the table.
+        // A notification link passes ?highlight=<id> to point at one
+        // specific order — default selected order = that one when present,
+        // otherwise just the most recent order.
+        $highlightId = $request->query('highlight');
         $selectedId = ($highlightId && $orders->firstWhere('id', (int) $highlightId))
             ? (int) $highlightId
             : $orders->first()?->id;
 
-        $selectedOrder = $selectedId
-            ? SalesOrder::with(['customer', 'items'])->find($selectedId)
+        $order = $selectedId
+            ? SalesOrder::with(['customer', 'items.product'])->find($selectedId)
             : null;
 
+        $selectedOrder = $order ? collect([
+            'id' => $order->id,
+            'order_no' => $order->order_no,
+            'customer' => $order->customer->name,
+            'status' => $order->status,
+            'status_label' => ucfirst($order->status),
+            'approval_status' => $order->approval_status,
+            'items' => $order->items->map(fn($i) => [
+                'id' => $i->id,
+                'name' => $i->product?->name ?? 'Unknown Product',
+                'qty' => $i->qty,
+                'price' => number_format($i->price, 2),
+            ]),
+            'subtotal' => number_format((float) $order->subtotal, 2),
+            'discount_label' => $order->discount_label,
+            'discount_amount' => number_format((float) $order->discount_amount, 2),
+            'tax_label' => $order->tax_label,
+            'tax_amount' => number_format((float) $order->tax_amount, 2),
+            'shipping_fee' => number_format((float) $order->shipping_fee, 2),
+            'amount' => number_format((float) $order->amount, 2),
+            'warehouse_code' => $order->warehouse_code,
+            'gl_code' => $order->gl_code,
+        ]) : null;
+
         return view('sales-orders.index', compact(
-            'orders', 'statusSummary', 'approvedCount', 'unapprovedCount', 'selectedOrder'
+            'ordersData',
+            'statusSummary',
+            'approvedCount',
+            'unapprovedCount',
+            'selectedOrder'
         ));
     }
 
@@ -69,7 +96,7 @@ class SalesOrderController extends Controller
      */
     public function show(SalesOrder $salesOrder)
     {
-        $salesOrder->load(['customer', 'items']);
+        $salesOrder->load(['customer', 'items.product']);
 
         return response()->json([
             'order_no' => $salesOrder->order_no,
@@ -77,18 +104,19 @@ class SalesOrderController extends Controller
             'status' => $salesOrder->status,
             'status_label' => ucfirst($salesOrder->status),
             'approval_status' => $salesOrder->approval_status,
-            'items' => $salesOrder->items->map(fn ($i) => [
-                'name' => $i->item_name,
+            'items' => $salesOrder->items->map(fn($i) => [
+                'id' => $i->id, // Added for Alpine's :key loop
+                'name' => $i->product?->name ?? 'Unknown Product', // Corrected relationship
                 'qty' => $i->qty,
                 'price' => number_format($i->price, 2),
             ]),
-            'subtotal' => number_format($salesOrder->subtotal, 2),
+            'subtotal' => number_format((float) $salesOrder->subtotal, 2),
             'discount_label' => $salesOrder->discount_label,
-            'discount_amount' => number_format($salesOrder->discount_amount, 2),
+            'discount_amount' => number_format((float) $salesOrder->discount_amount, 2),
             'tax_label' => $salesOrder->tax_label,
-            'tax_amount' => number_format($salesOrder->tax_amount, 2),
-            'shipping_fee' => number_format($salesOrder->shipping_fee, 2),
-            'amount' => number_format($salesOrder->amount, 2),
+            'tax_amount' => number_format((float) $salesOrder->tax_amount, 2),
+            'shipping_fee' => number_format((float) $salesOrder->shipping_fee, 2),
+            'amount' => number_format((float) $salesOrder->amount, 2),
             'warehouse_code' => $salesOrder->warehouse_code,
             'gl_code' => $salesOrder->gl_code,
         ]);

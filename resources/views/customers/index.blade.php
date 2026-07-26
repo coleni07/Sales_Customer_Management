@@ -16,7 +16,7 @@
          }">
 
         <form method="GET" action="{{ route('customers.index') }}" class="flex items-center justify-between mb-6 gap-4 flex-wrap">
-            <div class="flex items-center gap-3 flex-1 min-w-[260px]">
+<div class="flex items-center gap-3 flex-1 min-w-65">
                 <div class="relative flex-1 max-w-md">
                     <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Search Customer ID, Name"
@@ -99,6 +99,10 @@
                             <td class="px-5 py-4 text-gray-600">{{ $customer->location }}</td>
                             <td class="px-5 py-4 text-gray-600 font-mono tracking-wide">{{ $customer->masked_phone }}</td>
                             <td class="px-5 py-4 text-center font-semibold text-gray-800">{{ $customer->total_orders }}</td>
+                            <td class="px-5 py-4 text-gray-700">{{ $customer->name }}</td>
+                            <td class="px-5 py-4 text-gray-700">{{ $customer->location }}</td>
+                            <td class="px-5 py-4 text-gray-700">{{ $customer->phone }}</td>
+                            <td class="px-5 py-4 text-center font-semibold text-gray-800">{{ $customer->orders_count }}</td>
                             <td class="px-5 py-4 text-center">
                                 @if ($customer->status === 'Active')
                                     <span class="inline-flex items-center gap-1.5 bg-green-100 text-green-700 text-xs font-semibold px-4 py-1.5 rounded-full">

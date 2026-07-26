@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Campaign;
 use App\Models\SalesOrder;
-use App\Models\SupportTicket;
+use App\Models\Ticket;
 use Carbon\Carbon;
 
 class NotificationController extends Controller
@@ -37,7 +37,8 @@ class NotificationController extends Controller
             });
 
         // Open support tickets — unresolved customer issues
-        SupportTicket::where('status', 'Open')
+        Ticket::with('customer')
+            ->where('status', 'Open')
             ->latest()
             ->take(3)
             ->get()
@@ -45,7 +46,7 @@ class NotificationController extends Controller
                 $items->push([
                     'icon' => 'fa-headset',
                     'color' => 'rose',
-                    'title' => "Open ticket {$ticket->code()}",
+                    'title' => 'Open ticket ' . (method_exists($ticket, 'code') ? $ticket->code() : data_get($ticket, 'code', $ticket->id)),
                     'subtitle' => $ticket->subject,
                     'time' => $ticket->created_at?->diffForHumans(),
                     'sort' => $ticket->created_at,
