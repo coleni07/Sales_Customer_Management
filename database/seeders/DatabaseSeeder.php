@@ -132,25 +132,6 @@ class DatabaseSeeder extends Seeder
             // Call our new seedItems method to add real products and fix the math
             $this->seedItems($salesOrder);
         }
-
-        // ---- Tickets matching the "Latest Tickets" widget ----
-        $tickets = [
-            ['no' => 'TK-101', 'cust' => 'Juan Dela Cruz', 'status' => 'open'],
-            ['no' => 'TK-102', 'cust' => 'Maria Santos', 'status' => 'in_progress'],
-            ['no' => 'TK-103', 'cust' => 'Kevin Reyes', 'status' => 'open'],
-            ['no' => 'TK-104', 'cust' => 'Ana Garcia', 'status' => 'closed'],
-            ['no' => 'TK-105', 'cust' => 'Eloise Briderton', 'status' => 'closed'],
-        ];
-
-        foreach ($tickets as $t) {
-            Ticket::create([
-                'ticket_no' => $t['no'],
-                'customer_id' => $customers[$t['cust']]->id,
-                'subject' => 'Support request',
-                'status' => $t['status'],
-            ]);
-        }
-
         // ---- Extra random data so charts/pagination have real volume ----
         Customer::factory(20)->create()->each(function ($customer) {
             SalesOrder::factory(random_int(10, 25))->create([
