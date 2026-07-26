@@ -12,56 +12,45 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Pool of realistic product names to pull from when generating items for an order.
-     */
-    private array $productPool = [
-        'Battery',
-        'Mouse',
-        'Mouse Pad',
-        'Keyboard',
-        'Speaker',
-        'Camera',
-        'Watch',
-        'Charger',
-        'Headphones',
-        'Monitor',
-        'Webcam',
-        'Microphone',
-        'Router',
-        'Power Bank',
-        'Flash Drive',
-        'HDMI Cable',
-        'Laptop Stand',
-    ];
-
-    /**
-     * Create between 2 and 6 random items for an order, with prices that
-     * add up to the order's subtotal so the numbers stay consistent.
-     */
     private function seedItems(SalesOrder $order): void
     {
-        $count = random_int(2, 6);
-        $products = collect($this->productPool)->shuffle()->take($count)->values();
-        $weights = collect(range(1, $count))->map(fn() => random_int(10, 100));
-        $weightSum = $weights->sum();
+        // Safety shield: Prevent duplicating items if seedItems is called more than once
+        if ($order->items()->count() > 0) {
+            return;
+        }
 
-        $remaining = $order->subtotal;
+        $count = random_int(1, 4);
+        $products = \App\Models\Product::inRandomOrder()->take($count)->get();
+        $subtotal = 0;
 
-        foreach ($products as $i => $name) {
-            $isLast = $i === $count - 1;
-            $price = $isLast
-                ? round($remaining, 2)
-                : round(($weights[$i] / $weightSum) * $order->subtotal, 2);
-            $remaining -= $price;
+        foreach ($products as $product) {
+            $qty = random_int(1, 3);
+            $price = $product->price;
+            $subtotal += ($price * $qty);
 
             SalesOrderItem::create([
                 'sales_order_id' => $order->id,
-                'item_name' => $name,
-                'qty' => 1,
-                'price' => max($price, 0),
+                'product_id' => $product->id,
+                'qty' => $qty,
+                'price' => $price,
             ]);
         }
+
+        // Forward calculation for correct totals
+        $discountRate = 0.05;
+        $taxRate = 0.12;
+        $shipping = 100.00;
+
+        $discount = round($subtotal * $discountRate, 2);
+        $tax = round(($subtotal - $discount) * $taxRate, 2);
+        $amount = round($subtotal - $discount + $tax + $shipping, 2);
+
+        $order->update([
+            'subtotal' => $subtotal,
+            'discount_amount' => $discount,
+            'tax_amount' => $tax,
+            'amount' => $amount,
+        ]);
     }
 
     public function run(): void
@@ -120,28 +109,18 @@ class DatabaseSeeder extends Seeder
         $taxRate = 0.12;
 
         foreach ($orders as $o) {
-            $shipping = $o['no'] === 'SO-1001' ? 80.00 : 100.00;
-
-            $subtotal = round(($o['amount'] - $shipping) / ((1 - $discountRate) * (1 + $taxRate)), 2);
-            $discount = round($subtotal * $discountRate, 2);
-            $tax = round(($subtotal - $discount) * $taxRate, 2);
-
-            // Absorb any leftover centavo from rounding into shipping so the
-            // breakdown reconciles to the exact target amount.
-            $shipping = round($shipping + ($o['amount'] - ($subtotal - $discount + $tax + $shipping)), 2);
-
             $salesOrder = SalesOrder::create([
                 'order_no' => $o['no'],
                 'customer_id' => $customers[$o['cust']]->id,
                 'region_id' => \App\Models\Region::inRandomOrder()->value('id'),
                 'representative_id' => \App\Models\Representative::inRandomOrder()->value('id'),
-                'subtotal' => $subtotal,
+                'subtotal' => 0, // This will be calculated and updated by seedItems
                 'discount_label' => '5% Corp',
-                'discount_amount' => $discount,
+                'discount_amount' => 0,
                 'tax_label' => 'VAT 12%',
-                'tax_amount' => $tax,
-                'shipping_fee' => $shipping,
-                'amount' => $o['amount'],
+                'tax_amount' => 0,
+                'shipping_fee' => 100.00,
+                'amount' => 0, // This will be calculated and updated by seedItems
                 'status' => $o['status'],
                 'payment_method' => $o['pay'],
                 'approval_status' => $o['approval'],
@@ -150,16 +129,8 @@ class DatabaseSeeder extends Seeder
                 'order_date' => now()->subDays($o['days_ago']),
             ]);
 
-            if ($o['no'] === 'SO-1001') {
-                // Same two products as before, rescaled so they sum to the
-                // corrected subtotal instead of a stale hardcoded total.
-                $speaker = round($subtotal * (2300 / 3500), 2);
-                $watch = round($subtotal - $speaker, 2);
-                SalesOrderItem::create(['sales_order_id' => $salesOrder->id, 'item_name' => 'Speaker', 'qty' => 1, 'price' => $speaker]);
-                SalesOrderItem::create(['sales_order_id' => $salesOrder->id, 'item_name' => 'Watch', 'qty' => 1, 'price' => $watch]);
-            } else {
-                $this->seedItems($salesOrder);
-            }
+            // Call our new seedItems method to add real products and fix the math
+            $this->seedItems($salesOrder);
         }
 
         // ---- Tickets matching the "Latest Tickets" widget ----

@@ -10,7 +10,12 @@ class SalesOrderItem extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['sales_order_id', 'item_name', 'qty', 'price'];
+    protected $fillable = ['sales_order_id', 'product_id', 'qty', 'price'];
+
+    public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
 
     public function salesOrder(): BelongsTo
     {

@@ -71,7 +71,7 @@
                                     <i class="fa-solid fa-box text-2xl text-gray-500"></i>
                                 </div>
                                 <div>
-                                    <p class="font-semibold text-gray-900">{{ $item->item_name }}</p>
+                                    <p class="font-semibold text-gray-900">{{ $item->product->name }}</p>
                                     <p class="text-xs text-gray-500">Store : Main Warehouse</p>
                                     <p class="text-xs text-gray-700 mt-1">
                                         Quantity : <span class="font-medium">{{ $item->qty }}</span>

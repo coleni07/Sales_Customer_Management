@@ -11,4 +11,9 @@ class Product extends Model
 
     protected $fillable = ['name', 'category', 'price', 'monthly_target'];
 
+    public function salesOrderItems(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(SalesOrderItem::class);
+    }
+
 }

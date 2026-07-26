@@ -189,7 +189,7 @@ class SalesReportController extends Controller
         $percent = $totalTarget > 0 ? round(($totalValue / $totalTarget) * 100) : 0;
 
         $breakdownRaw = SalesOrderItem::join('sales_orders', 'sales_order_items.sales_order_id', '=', 'sales_orders.id')
-            ->join('products', 'sales_order_items.item_name', '=', 'products.name')
+            ->join('products', 'sales_order_items.product_id', '=', 'products.id')
             ->whereBetween('sales_orders.order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
             ->where('sales_orders.status', '!=', 'cancelled')
             ->selectRaw('products.category as category, SUM(sales_order_items.price * sales_order_items.qty) as total')
@@ -215,7 +215,7 @@ class SalesReportController extends Controller
         // --- LIVE DATA: Products ---
         $products = Product::all()->map(function ($p) use ($categoryColors, $monthStart, $now) {
             $liveSales = SalesOrderItem::join('sales_orders', 'sales_order_items.sales_order_id', '=', 'sales_orders.id')
-                ->where('sales_order_items.item_name', $p->name)
+                ->where('sales_order_items.product_id', $p->id)
                 ->whereBetween('sales_orders.order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
                 ->where('sales_orders.status', '!=', 'cancelled')
                 ->selectRaw('SUM(sales_order_items.qty) as total_qty, SUM(sales_order_items.qty * sales_order_items.price) as total_revenue')
@@ -370,7 +370,7 @@ class SalesReportController extends Controller
     {
         $product = Product::find($productId);
         $totals = SalesOrder::join('sales_order_items', 'sales_orders.id', '=', 'sales_order_items.sales_order_id')
-            ->where('sales_order_items.item_name', $product->name)
+            ->where('sales_order_items.product_id', $productId)
             ->where('sales_orders.status', '!=', 'cancelled')
             ->selectRaw('sales_orders.region_id, SUM(sales_order_items.qty * sales_order_items.price) as total')
             ->groupBy('sales_orders.region_id')
@@ -390,7 +390,7 @@ class SalesReportController extends Controller
         $product = Product::find($productId);
         return SalesOrder::join('sales_order_items', 'sales_orders.id', '=', 'sales_order_items.sales_order_id')
             ->join('representatives', 'sales_orders.representative_id', '=', 'representatives.id')
-            ->where('sales_order_items.item_name', $product->name)
+            ->where('sales_order_items.product_id', $productId)
             ->where('sales_orders.status', '!=', 'cancelled')
             ->selectRaw('representatives.name as name, SUM(sales_order_items.qty * sales_order_items.price) as total')
             ->groupBy('representatives.name')
@@ -409,7 +409,7 @@ class SalesReportController extends Controller
             $start = $now->copy()->subMonths($i)->startOfMonth();
             $end = $now->copy()->subMonths($i)->endOfMonth();
             $values[] = round(SalesOrder::join('sales_order_items', 'sales_orders.id', '=', 'sales_order_items.sales_order_id')
-                ->where('sales_order_items.item_name', $product->name)
+                ->where('sales_order_items.product_id', $product->id)
                 ->where('sales_orders.status', '!=', 'cancelled')
                 ->whereBetween('sales_orders.order_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
                 ->sum(\DB::raw('sales_order_items.qty * sales_order_items.price')));
@@ -422,8 +422,9 @@ class SalesReportController extends Controller
         return SalesOrderItem::join('sales_orders', 'sales_order_items.sales_order_id', '=', 'sales_orders.id')
             ->where('sales_orders.region_id', $regionId)
             ->where('sales_orders.status', '!=', 'cancelled')
-            ->selectRaw('sales_order_items.item_name as name, SUM(sales_order_items.qty * sales_order_items.price) as value')
-            ->groupBy('sales_order_items.item_name')
+            ->join('products', 'sales_order_items.product_id', '=', 'products.id')
+            ->selectRaw('products.name as name, SUM(sales_order_items.qty * sales_order_items.price) as value')
+            ->groupBy('products.name')
             ->orderByDesc('value')
             ->limit($limit)
             ->get()
@@ -437,8 +438,9 @@ class SalesReportController extends Controller
         return SalesOrderItem::join('sales_orders', 'sales_order_items.sales_order_id', '=', 'sales_orders.id')
             ->where('sales_orders.representative_id', $repId)
             ->where('sales_orders.status', '!=', 'cancelled')
-            ->selectRaw('sales_order_items.item_name as name, SUM(sales_order_items.qty * sales_order_items.price) as total')
-            ->groupBy('sales_order_items.item_name')
+            ->join('products', 'sales_order_items.product_id', '=', 'products.id')
+            ->selectRaw('products.name as name, SUM(sales_order_items.qty * sales_order_items.price) as total')
+            ->groupBy('products.name')
             ->orderByDesc('total')
             ->limit($limit)
             ->get()
