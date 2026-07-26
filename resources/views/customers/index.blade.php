@@ -12,6 +12,54 @@
             liveSearch(el) {
                 clearTimeout(this.searchTimeout);
                 this.searchTimeout = setTimeout(() => el.form.requestSubmit(), 400);
+            },
+            historyOpen: false,
+            historyLoading: false,
+            historyData: null,
+            historyScope: 'customer',
+            async viewHistory() {
+                this.historyScope = 'customer';
+                this.historyLoading = true;
+                this.historyData = null;
+                this.modalOpen = false;
+                this.historyOpen = true;
+                try {
+                    const res = await fetch(this.selected.historyUrl, {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    this.historyData = await res.json();
+                } catch (e) {
+                    this.historyData = { error: true };
+                } finally {
+                    this.historyLoading = false;
+                }
+            },
+            async viewAllHistory(url) {
+                this.historyScope = 'all';
+                this.selected = null;
+                this.historyLoading = true;
+                this.historyData = null;
+                this.historyOpen = true;
+                try {
+                    const res = await fetch(url, {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    this.historyData = await res.json();
+                } catch (e) {
+                    this.historyData = { error: true };
+                } finally {
+                    this.historyLoading = false;
+                }
+            },
+            statusBadge(status) {
+                const map = {
+                    delivered: 'bg-green-100 text-green-700',
+                    shipped: 'bg-sky-100 text-sky-700',
+                    processing: 'bg-amber-100 text-amber-700',
+                    pending: 'bg-gray-100 text-gray-600',
+                    cancelled: 'bg-red-100 text-red-600',
+                };
+                return map[status] || 'bg-gray-100 text-gray-600';
             }
          }">
 
@@ -59,10 +107,11 @@
                 </div>
             </div>
 
-            <a href="{{ route('purchase-history.index') }}" class="bg-navy hover:bg-navyDark transition text-white font-semibold rounded-full px-6 py-2.5 text-sm shadow-sm shadow-navy/20">
+            <button type="button" @click="viewAllHistory(@js(route('purchase-history.index')))"
+                    class="bg-navy hover:bg-navyDark transition text-white font-semibold rounded-full px-6 py-2.5 text-sm shadow-sm shadow-navy/20">
                 <i class="fa-solid fa-receipt mr-1"></i>
                 Purchase History
-            </a>
+            </button>
         </form>
 
         <div class="overflow-x-auto rounded-xl border border-gray-200">
@@ -268,13 +317,124 @@
                                     class="px-5 py-2.5 rounded-full text-sm font-medium text-gray-600 hover:bg-gray-100 transition">
                                 Close
                             </button>
-                            <a :href="selected.historyUrl"
+                            <button type="button" @click="viewHistory()"
                                class="bg-navy hover:bg-navyDark transition text-white font-semibold rounded-full px-6 py-2.5 text-sm">
                                 View Full Purchase History
-                            </a>
+                            </button>
                         </div>
                     </div>
                 </template>
+            </div>
+        </div>
+
+        {{-- Purchase history popup (stays on this page, no navigation) --}}
+        <div x-show="historyOpen"
+             x-cloak
+             x-transition.opacity
+             class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+             @click.self="historyOpen = false"
+             @keydown.escape.window="historyOpen = false">
+
+            <div x-show="historyOpen" x-transition
+                 class="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+
+                <div class="flex items-start justify-between px-6 pt-6 pb-4 border-b border-gray-100 sticky top-0 bg-white">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900">Purchase History</h2>
+                        <p class="text-xs text-gray-500 mt-0.5"
+                           x-text="historyScope === 'customer' && selected ? selected.name + ' &middot; ' + selected.customerCode : 'All Customers'"></p>
+                    </div>
+                    <button type="button" @click="historyOpen = false" class="text-gray-400 hover:text-gray-700 transition">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <div class="px-6 py-5">
+
+                    <template x-if="historyLoading">
+                        <p class="text-center text-gray-400 py-10">
+                            <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading purchase history...
+                        </p>
+                    </template>
+
+                    <template x-if="!historyLoading && historyData && historyData.error">
+                        <p class="text-center text-red-400 py-10">Couldn't load purchase history. Please try again.</p>
+                    </template>
+
+                    <template x-if="!historyLoading && historyData && !historyData.error">
+                        <div>
+                            <div class="grid grid-cols-3 gap-3 mb-5">
+                                <div class="border border-gray-200 rounded-xl p-3 text-center">
+                                    <p class="text-xl font-bold text-gray-900" x-text="historyData.summary.orders_count"></p>
+                                    <p class="text-xs text-gray-500 mt-0.5">Orders</p>
+                                </div>
+                                <div class="border border-gray-200 rounded-xl p-3 text-center">
+                                    <p class="text-xl font-bold text-gray-900" x-text="historyData.summary.items_count"></p>
+                                    <p class="text-xs text-gray-500 mt-0.5">Items</p>
+                                </div>
+                                <div class="border border-gray-200 rounded-xl p-3 text-center">
+                                    <p class="text-xl font-bold text-gray-900" x-text="'Php ' + Number(historyData.summary.total_spent).toLocaleString(undefined, {minimumFractionDigits: 2})"></p>
+                                    <p class="text-xs text-gray-500 mt-0.5">Total Spent</p>
+                                </div>
+                            </div>
+
+                            <template x-if="historyData.orders.length === 0">
+                                <p class="text-center text-gray-400 py-10">No orders found for this customer.</p>
+                            </template>
+
+                            <template x-for="order in historyData.orders" :key="order.order_no">
+                                <div class="border border-gray-200 rounded-xl p-4 mb-4">
+                                    <div class="flex items-start justify-between mb-3 flex-wrap gap-2">
+                                        <div>
+                                            <template x-if="historyScope === 'all'">
+                                                <p class="text-sm font-semibold text-gray-900" x-text="order.customer_name + ' · ' + order.customer_code"></p>
+                                            </template>
+                                            <p class="text-sm text-gray-800">Order : <span class="font-medium" x-text="order.order_no"></span></p>
+                                            <p class="text-xs text-gray-500 mt-0.5" x-text="order.order_date"></p>
+                                        </div>
+                                        <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full"
+                                              :class="statusBadge(order.status)"
+                                              x-text="order.status.charAt(0).toUpperCase() + order.status.slice(1)"></span>
+                                    </div>
+
+                                    <div class="divide-y divide-gray-100">
+                                        <template x-for="item in order.items" :key="item.product_name + order.order_no">
+                                            <div class="flex items-center justify-between py-2.5">
+                                                <div>
+                                                    <p class="text-sm font-semibold text-gray-900" x-text="item.product_name"></p>
+                                                    <p class="text-xs text-gray-500" x-text="'Qty: ' + item.qty"></p>
+                                                </div>
+                                                <p class="text-sm font-semibold text-gray-800" x-text="'Php ' + Number(item.price).toLocaleString(undefined, {minimumFractionDigits: 2})"></p>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pt-3 mt-2 border-t border-gray-100">
+                                        <p class="text-xs text-gray-500">&nbsp;</p>
+                                        <p class="bg-gray-100 rounded-full px-4 py-1.5 text-sm font-semibold text-gray-800"
+                                           x-text="'Total: Php ' + Number(order.amount).toLocaleString(undefined, {minimumFractionDigits: 2})"></p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="px-6 pb-6 flex items-center justify-between gap-3 sticky bottom-0 bg-white">
+                    <template x-if="historyScope === 'customer'">
+                        <button type="button" @click="historyOpen = false; modalOpen = true"
+                                class="px-5 py-2.5 rounded-full text-sm font-medium text-gray-600 hover:bg-gray-100 transition">
+                            <i class="fa-solid fa-arrow-left mr-1"></i> Back to Profile
+                        </button>
+                    </template>
+                    <template x-if="historyScope !== 'customer'">
+                        <span></span>
+                    </template>
+                    <button type="button" @click="historyOpen = false"
+                            class="px-5 py-2.5 rounded-full text-sm font-medium text-white bg-navy hover:bg-navyDark transition">
+                        Close
+                    </button>
+                </div>
             </div>
         </div>
 
