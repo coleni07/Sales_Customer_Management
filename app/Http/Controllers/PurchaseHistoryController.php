@@ -3,37 +3,63 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Order;
 use Illuminate\Http\Request;
 
-class CustomerController extends Controller
+class PurchaseHistoryController extends Controller
 {
     public function index(Request $request)
     {
-        $search = $request->query('search');
-        $sort = $request->query('sort', 'name_asc');
+        // status: all | completed | cancelled
+        $status = $request->query('status', 'all');
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+        $customerId = $request->query('customer_id');
 
-        $sortMap = [
-            'name_asc'  => ['name', 'asc'],
-            'name_desc' => ['name', 'desc'],
-            'date_new'  => ['created_at', 'desc'],
-            'date_old'  => ['created_at', 'asc'],
+        $statusMap = [
+            'completed' => 'delivered',
+            'cancelled' => 'cancelled',
         ];
 
-        [$sortColumn, $sortDirection] = $sortMap[$sort] ?? $sortMap['name_asc'];
-
-        $customers = Customer::query()
-            ->withCount('orders')
-            ->with(['orders' => function ($query) {
-                $query->latest('payment_date')->limit(1);
+        $orders = Order::with(['items' => function ($query) use ($status, $statusMap, $dateFrom, $dateTo) {
+                if (isset($statusMap[$status])) {
+                    $query->where('status', $statusMap[$status]);
+                }
+                if ($dateFrom && $dateTo) {
+                    $query->whereBetween('expected_delivery', [$dateFrom, $dateTo]);
+                }
+                $query->orderBy('expected_delivery');
             }])
-            ->when($search, function ($query) use ($search) {
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('customer_code', 'like', "%{$search}%");
+            ->when(isset($statusMap[$status]), function ($query) use ($status, $statusMap) {
+                $query->whereHas('items', function ($q) use ($status, $statusMap) {
+                    $q->where('status', $statusMap[$status]);
+                });
             })
-            ->orderBy($sortColumn, $sortDirection)
-            ->paginate(7)
-            ->withQueryString();
+            ->when($customerId, function ($query) use ($customerId) {
+                $query->where('customer_id', $customerId);
+            })
+            ->latest()
+            ->get()
+            ->filter(fn ($order) => $order->items->isNotEmpty())
+            ->values();
 
-        return view('customers.index', compact('customers', 'sort'));
+        $customer = $customerId ? Customer::find($customerId) : null;
+
+        $summary = [
+            'orders_count' => $orders->count(),
+            'items_count' => $orders->sum(fn ($order) => $order->items->count()),
+            'total_spent' => $orders->sum(fn ($order) => $order->items
+                ->where('status', 'delivered')
+                ->sum(fn ($item) => $item->price * $item->quantity)),
+        ];
+
+        return view('purchase-history.index', [
+            'orders' => $orders,
+            'status' => $status,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'customer' => $customer,
+            'summary' => $summary,
+        ]);
     }
 }
