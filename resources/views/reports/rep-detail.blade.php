@@ -40,7 +40,6 @@
                         </td>
                         <td><span class="region-tag"><span class="dot"
                                     style="background:{{ $regionColor }}"></span>{{ $rep['region'] }}</span>
-                            <div class="region-note">Top region by contribution</div>
                         </td>
                         <td>₱{{ number_format($rep['revenue']) }}</td>
                         <td>
