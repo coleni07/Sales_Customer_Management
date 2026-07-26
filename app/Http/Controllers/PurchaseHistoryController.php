@@ -17,7 +17,6 @@ class PurchaseHistoryController extends Controller
         $customerId = $request->query('customer_id');
 
         $statusMap = [
-            'completed' => ['delivered'],
             'pending' => ['pending'],
             'shipped' => ['shipped'],
             'delivered' => ['delivered'],

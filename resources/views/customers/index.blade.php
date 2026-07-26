@@ -21,7 +21,6 @@
             historyStatus: 'all',
             historyTabs: [
                 { key: 'all', label: 'All' },
-                { key: 'completed', label: 'Completed' },
                 { key: 'pending', label: 'Pending' },
                 { key: 'shipped', label: 'Shipped' },
                 { key: 'delivered', label: 'Delivered' },
