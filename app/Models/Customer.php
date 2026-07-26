@@ -12,11 +12,10 @@ class Customer extends Model
 
     protected $fillable = ['customer_code', 'name', 'email', 'phone', 'address', 'location', 'total_orders', 'status'];
 
-    public function orders(): HasMany
+    public function salesOrders(): HasMany
     {
         return $this->hasMany(SalesOrder::class);
     }
-
 
     public function tickets(): HasMany
     {
@@ -41,7 +40,6 @@ class Customer extends Model
 
         $digits = preg_replace('/\D/', '', $this->phone);
 
-        // Normalize +63 country code to local 0-prefixed format (e.g. 639171234567 -> 09171234567)
         if (strlen($digits) === 12 && str_starts_with($digits, '63')) {
             $digits = '0' . substr($digits, 2);
         }
@@ -50,7 +48,6 @@ class Customer extends Model
             return substr($digits, 0, 4) . '-' . substr($digits, 4, 3) . '-' . substr($digits, 7);
         }
 
-        // Fallback: return the original value as-is if it doesn't match a standard PH number
         return $this->phone;
     }
 
@@ -66,7 +63,6 @@ class Customer extends Model
 
         $digits = preg_replace('/\D/', '', $this->phone);
 
-        // Normalize +63 country code to local 0-prefixed format (e.g. 639171234567 -> 09171234567)
         if (strlen($digits) === 12 && str_starts_with($digits, '63')) {
             $digits = '0' . substr($digits, 2);
         }
@@ -78,5 +74,3 @@ class Customer extends Model
         return substr($digits, 0, 4) . '-***';
     }
 }
-
- 
