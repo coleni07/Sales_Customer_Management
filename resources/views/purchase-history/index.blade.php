@@ -108,7 +108,7 @@
         </div>
 
         <div class="flex items-center gap-8 mb-5 border-b border-gray-100 pb-1">
-            @foreach (['all' => 'All', 'completed' => 'Completed', 'cancelled' => 'Cancelled'] as $key => $label)
+            @foreach (['all' => 'All', 'completed' => 'Completed', 'pending' => 'Pending', 'shipped_delivered' => 'Shipped/Delivered', 'cancelled' => 'Cancelled'] as $key => $label)
                 <a href="{{ route('purchase-history.index', array_filter(['status' => $key, 'date_from' => $dateFrom, 'date_to' => $dateTo, 'customer_id' => $customer?->id])) }}"
                    class="text-sm pb-2 -mb-px {{ $status === $key ? 'font-bold text-gray-900 border-b-2 border-gray-900' : 'text-gray-500 hover:text-gray-700' }}">
                     {{ $label }}

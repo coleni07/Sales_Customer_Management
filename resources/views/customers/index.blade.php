@@ -17,16 +17,21 @@
             historyLoading: false,
             historyData: null,
             historyScope: 'customer',
-            async viewHistory() {
-                this.historyScope = 'customer';
+            historyBaseUrl: '',
+            historyStatus: 'all',
+            historyTabs: [
+                { key: 'all', label: 'All' },
+                { key: 'completed', label: 'Completed' },
+                { key: 'pending', label: 'Pending' },
+                { key: 'shipped_delivered', label: 'Shipped/Delivered' },
+                { key: 'cancelled', label: 'Cancelled' },
+            ],
+            async loadHistory(status) {
+                this.historyStatus = status;
                 this.historyLoading = true;
-                this.historyData = null;
-                this.modalOpen = false;
-                this.historyOpen = true;
+                const url = this.historyBaseUrl + (this.historyBaseUrl.includes('?') ? '&' : '?') + 'status=' + status;
                 try {
-                    const res = await fetch(this.selected.historyUrl, {
-                        headers: { 'Accept': 'application/json' }
-                    });
+                    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
                     this.historyData = await res.json();
                 } catch (e) {
                     this.historyData = { error: true };
@@ -34,22 +39,19 @@
                     this.historyLoading = false;
                 }
             },
-            async viewAllHistory(url) {
-                this.historyScope = 'all';
-                this.selected = null;
-                this.historyLoading = true;
-                this.historyData = null;
+            viewHistory() {
+                this.historyScope = 'customer';
+                this.historyBaseUrl = this.selected.historyUrl;
+                this.modalOpen = false;
                 this.historyOpen = true;
-                try {
-                    const res = await fetch(url, {
-                        headers: { 'Accept': 'application/json' }
-                    });
-                    this.historyData = await res.json();
-                } catch (e) {
-                    this.historyData = { error: true };
-                } finally {
-                    this.historyLoading = false;
-                }
+                this.loadHistory('all');
+            },
+            viewAllHistory(url) {
+                this.historyScope = 'all';
+                this.historyBaseUrl = url;
+                this.selected = null;
+                this.historyOpen = true;
+                this.loadHistory('all');
             },
             statusBadge(status) {
                 const map = {
@@ -347,6 +349,15 @@
                     <button type="button" @click="historyOpen = false" class="text-gray-400 hover:text-gray-700 transition">
                         <i class="fa-solid fa-xmark text-lg"></i>
                     </button>
+                </div>
+
+                <div class="flex items-center gap-6 px-6 pt-4 border-b border-gray-100 overflow-x-auto">
+                    <template x-for="tab in historyTabs" :key="tab.key">
+                        <button type="button" @click="loadHistory(tab.key)"
+                                class="text-sm pb-3 -mb-px whitespace-nowrap"
+                                :class="historyStatus === tab.key ? 'font-bold text-gray-900 border-b-2 border-gray-900' : 'text-gray-500 hover:text-gray-700'"
+                                x-text="tab.label"></button>
+                    </template>
                 </div>
 
                 <div class="px-6 py-5">

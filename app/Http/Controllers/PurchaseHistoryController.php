@@ -10,20 +10,22 @@ class PurchaseHistoryController extends Controller
 {
     public function index(Request $request)
     {
-        // status: all | completed | cancelled
+        // status: all | completed | pending | shipped_delivered | cancelled
         $status = $request->query('status', 'all');
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
         $customerId = $request->query('customer_id');
 
         $statusMap = [
-            'completed' => 'delivered',
-            'cancelled' => 'cancelled',
+            'completed' => ['delivered'],
+            'pending' => ['pending'],
+            'shipped_delivered' => ['shipped', 'delivered'],
+            'cancelled' => ['cancelled'],
         ];
 
         $orders = SalesOrder::with(['items.product', 'customer'])
             ->when(isset($statusMap[$status]), function ($query) use ($status, $statusMap) {
-                $query->where('status', $statusMap[$status]);
+                $query->whereIn('status', $statusMap[$status]);
             })
             ->when($dateFrom && $dateTo, function ($query) use ($dateFrom, $dateTo) {
                 $query->whereBetween('order_date', [$dateFrom, $dateTo]);
