@@ -35,17 +35,12 @@ class SalesOrderController extends Controller
             ->withQueryString();
 
         // Status tracking summary cards (Pending / Processing / Shipped / Delivered)
-        $now = \Carbon\Carbon::now();
-        $monthStart = $now->copy()->startOfMonth();
-
-        $statusSummary = collect(['pending', 'processing', 'shipped', 'delivered', 'cancelled'])->map(function ($status) use ($monthStart, $now) {
+        $statusSummary = collect(['pending', 'processing', 'shipped', 'delivered', 'cancelled'])->map(function ($status) {
             return [
                 'status' => $status,
                 'count' => SalesOrder::where('status', $status)
-                    ->whereBetween('order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
                     ->count(),
                 'total' => (float) SalesOrder::where('status', $status)
-                    ->whereBetween('order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
                     ->sum('amount'),
             ];
         });
