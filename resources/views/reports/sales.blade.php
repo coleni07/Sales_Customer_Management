@@ -12,6 +12,19 @@
 
 @section('content')
 
+    {{-- Overview Breadcrumb & Quick Export --}}
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div class="detail-breadcrumb">
+            <a href="{{ route('reports.sales') }}">Sales Report</a>
+            <span class="crumb-sep"> &rsaquo; </span>
+            <span>Overview</span>
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center;">
+            <button type="button" onclick="openExportModal()" class="export-btn">Export</button>
+        </div>
+    </div>
+
     {{-- KPI ROW --}}
     <div class="kpi-row">
         <div class="card kpi-clickable accent-total" onclick="openKpiModal('total')">
@@ -484,6 +497,8 @@
         function closeKpiModal() { document.getElementById('kpi-modal').classList.remove('open'); }
 
         const peso = (v) => '₱' + Number(v).toLocaleString('en-PH');
+        const regionalData = @json($regionalChart);
+        const regionNames = Object.keys(regionalData.series);
 
         // --- CHART VARIABLES & FUNCTIONS ---
         let regionalChart;
@@ -579,8 +594,7 @@
         }
 
         function highlightRegion(name) {
-            const regionalData = @json($regionalChart);
-            Object.keys(regionalData.series).forEach(r => r === name
+            regionNames.forEach(r => r === name
                 ? document.getElementById('region-card-' + r)?.classList.add('region-hover')
                 : clearRegionHighlight(r));
             setLineEmphasis(name);
@@ -595,9 +609,6 @@
         document.addEventListener('DOMContentLoaded', function () {
 
             initRevenueChart('7D');
-
-            const regionalData = @json($regionalChart);
-            const regionNames = Object.keys(regionalData.series);
 
             regionNames.forEach(function (region) {
                 const s = regionalData.series[region].stats;

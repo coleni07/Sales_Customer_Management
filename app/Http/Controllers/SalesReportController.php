@@ -250,6 +250,14 @@ class SalesReportController extends Controller
             ];
         });
 
+        $repRegionContributions = SalesOrder::whereBetween('order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
+            ->where('status', '!=', 'cancelled')
+            ->join('regions', 'sales_orders.region_id', '=', 'regions.id')
+            ->selectRaw('representative_id, region_id, regions.name as region_name, regions.color as region_color, SUM(amount) as revenue')
+            ->groupBy('representative_id', 'region_id', 'regions.name', 'regions.color')
+            ->get()
+            ->groupBy('representative_id');
+
         $reps = Representative::with('region')
             ->withSum([
                 'salesOrders as revenue' => function ($q) use ($monthStart, $now) {
@@ -270,11 +278,15 @@ class SalesReportController extends Controller
                 }
             ], 'amount')
             ->get()
-            ->map(function ($rep) {
+            ->map(function ($rep) use ($repRegionContributions) {
                 $revenue = round($rep->revenue ?? 0);
                 $deals = (int) ($rep->deals ?? 0);
                 $lastMonthRevenue = round($rep->lastMonthRevenue ?? 0);
                 $repChange = $lastMonthRevenue > 0 ? round((($revenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 1) : 0;
+
+                $topRegion = $repRegionContributions->get($rep->id, collect())->sortByDesc('revenue')->first();
+                $topRegionName = $topRegion ? $topRegion->region_name : $rep->region->name;
+                $topRegionColor = $topRegion ? $topRegion->region_color : $rep->region->color;
 
                 return [
                     'id' => $rep->id,
@@ -282,7 +294,9 @@ class SalesReportController extends Controller
                     'revenue' => $revenue,
                     'deals' => $deals,
                     'avgDealSize' => $deals > 0 ? round($revenue / $deals) : 0,
-                    'region' => $rep->region->name,
+                    'region' => $topRegionName,
+                    'regionColor' => $topRegionColor,
+                    'trendColor' => $topRegionColor,
                     'quota' => (float) $rep->monthly_quota,
                     'change' => $repChange,
                     'quotaPercent' => $rep->monthly_quota > 0 ? round(($revenue / $rep->monthly_quota) * 100) : 0,
@@ -515,17 +529,21 @@ class SalesReportController extends Controller
         return $values;
     }
 
-    private function topProductsInRegion(int $regionId, int $limit = 3): array
+    private function productsInRegion(int $regionId, ?int $limit = null): array
     {
-        return SalesOrderItem::join('sales_orders', 'sales_order_items.sales_order_id', '=', 'sales_orders.id')
+        $query = SalesOrderItem::join('sales_orders', 'sales_order_items.sales_order_id', '=', 'sales_orders.id')
             ->where('sales_orders.region_id', $regionId)
             ->where('sales_orders.status', '!=', 'cancelled')
             ->join('products', 'sales_order_items.product_id', '=', 'products.id')
             ->selectRaw('products.name as name, SUM(sales_order_items.qty * sales_order_items.price) as value')
             ->groupBy('products.name')
-            ->orderByDesc('value')
-            ->limit($limit)
-            ->get()
+            ->orderByDesc('value');
+
+        if ($limit) {
+            $query->limit($limit);
+        }
+
+        return $query->get()
             ->map(fn($row) => ['name' => $row->name, 'value' => round($row->value)])
             ->all();
     }
@@ -604,10 +622,27 @@ class SalesReportController extends Controller
     public function regionalDetail()
     {
         $data = $this->getData();
+        $now = $this->getNow();
+        $monthStart = $now->copy()->startOfMonth();
 
-        $data['regions'] = $data['regions']->map(function ($r) use ($data) {
-            $r['topProducts'] = collect($this->topProductsInRegion($r['id']));
-            $r['reps'] = $data['reps']->where('region', $r['name'])->values();
+        $repRegionContributions = SalesOrder::whereBetween('order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
+            ->where('status', '!=', 'cancelled')
+            ->join('regions', 'sales_orders.region_id', '=', 'regions.id')
+            ->selectRaw('representative_id, region_id, regions.name as region_name, regions.color as region_color, SUM(amount) as revenue')
+            ->groupBy('representative_id', 'region_id', 'regions.name', 'regions.color')
+            ->get()
+            ->groupBy('representative_id');
+
+        $data['regions'] = $data['regions']->map(function ($r) use ($data, $repRegionContributions) {
+            $r['products'] = collect($this->productsInRegion($r['id']));
+            $r['reps'] = $data['reps']->map(function ($rep) use ($r, $repRegionContributions) {
+                $contribution = $repRegionContributions->get($rep['id'], collect())->firstWhere('region_name', $r['name']);
+                $regionRevenue = $contribution ? round($contribution->revenue) : 0;
+                return array_merge($rep, [
+                    'regionRevenue' => $regionRevenue,
+                    'regionShare' => $r['sales'] > 0 ? round(($regionRevenue / $r['sales']) * 100) : 0,
+                ]);
+            })->filter(fn($rep) => $rep['regionRevenue'] > 0)->values();
             return $r;
         });
 
@@ -661,7 +696,7 @@ class SalesReportController extends Controller
             $handle = fopen('php://output', 'w');
 
             if ($report === 'product' || $report === 'all') {
-                fputcsv($handle, ['Product Report']);
+                fputcsv($handle, ['=== Product Report ===']);
                 fputcsv($handle, ['Product', 'Qty Sold', 'Actual', 'Target', 'Status']);
                 foreach ($data['products'] as $p) {
                     $status = $p['actual'] >= $p['target'] ? 'Above Target' : 'Below Target';
@@ -670,19 +705,27 @@ class SalesReportController extends Controller
                 fputcsv($handle, []);
             }
 
+            if ($report === 'all') {
+                fputcsv($handle, ['=== Revenue Overview ===']);
+                fputcsv($handle, ['Total Sales', '₱' . number_format($data['totalSales']['value'], 2)]);
+                fputcsv($handle, ['Monthly Target', '₱' . number_format($data['totalSales']['target'], 2)]);
+                fputcsv($handle, ['Target Achievement', $data['totalSales']['percent'] . '%']);
+                fputcsv($handle, ['Forecast', '₱' . number_format($data['forecast']['value'], 2)]);
+                fputcsv($handle, []);
+            }
+
             if ($report === 'regional' || $report === 'all') {
-                fputcsv($handle, ['Regional Report']);
+                fputcsv($handle, ['=== Regional Report ===']);
                 fputcsv($handle, ['Region', 'Sales', 'Target', 'Percent']);
                 foreach ($data['regions'] as $r) {
-                    $percent = round(($r['sales'] / $r['target']) * 100);
+                    $percent = $r['target'] > 0 ? round(($r['sales'] / $r['target']) * 100) : 0;
                     fputcsv($handle, [$r['name'], $r['sales'], $r['target'], $percent . '%']);
                 }
                 fputcsv($handle, []);
             }
 
             if ($report === 'rep' || $report === 'all') {
-                fputcsv($handle, ['Representative Report']);
-                fputcsv($handle, ['Representative', 'Revenue', 'Deals Closed']);
+                fputcsv($handle, ['=== Representative Report ===']);
                 foreach ($data['reps'] as $r) {
                     fputcsv($handle, [$r['name'], $r['revenue'], $r['deals']]);
                 }
@@ -696,10 +739,20 @@ class SalesReportController extends Controller
 
     private function exportPdf(string $report, array $data)
     {
-        $pdf = Pdf::loadView('reports.export-pdf', [
+        $payload = [
             'report' => $report,
+            'reportTitle' => $report === 'all' ? 'Complete Sales Report' : ucfirst($report) . ' Report',
             ...$data,
-        ]);
+        ];
+
+        if ($report === 'all') {
+            $payload['overview'] = [
+                'totalSales' => $data['totalSales'],
+                'forecast' => $data['forecast'],
+            ];
+        }
+
+        $pdf = Pdf::loadView('reports.export-pdf', $payload);
         return $pdf->download("sales-report-{$report}.pdf");
     }
 
@@ -722,14 +775,30 @@ class SalesReportController extends Controller
             $row++;
         }
 
+        if ($report === 'all') {
+            $sheet->setCellValue("A{$row}", 'Revenue Overview');
+            $row++;
+            $sheet->fromArray(['Metric', 'Value'], null, "A{$row}");
+            $row++;
+            $sheet->fromArray(['Total Sales', '₱' . number_format($data['totalSales']['value'], 2)], null, "A{$row}");
+            $row++;
+            $sheet->fromArray(['Monthly Target', '₱' . number_format($data['totalSales']['target'], 2)], null, "A{$row}");
+            $row++;
+            $sheet->fromArray(['Target Achievement', $data['totalSales']['percent'] . '%'], null, "A{$row}");
+            $row++;
+            $sheet->fromArray(['Forecast', '₱' . number_format($data['forecast']['value'], 2)], null, "A{$row}");
+            $row++;
+            $row++;
+        }
+
         if ($report === 'regional' || $report === 'all') {
             $sheet->setCellValue("A{$row}", 'Regional Report');
             $row++;
             $sheet->fromArray(['Region', 'Sales', 'Target', 'Percent'], null, "A{$row}");
             $row++;
             foreach ($data['regions'] as $r) {
-                $percent = round(($r['sales'] / $r['target']) * 100) . '%';
-                $sheet->fromArray([$r['name'], $r['sales'], $r['target'], $percent], null, "A{$row}");
+                $percent = $r['target'] > 0 ? round(($r['sales'] / $r['target']) * 100) : 0;
+                $sheet->fromArray([$r['name'], $r['sales'], $r['target'], $percent . '%'], null, "A{$row}");
                 $row++;
             }
             $row++;
