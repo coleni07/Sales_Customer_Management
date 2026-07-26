@@ -622,8 +622,10 @@ class SalesReportController extends Controller
     public function regionalDetail()
     {
         $data = $this->getData();
+        $now = $this->getNow();
+        $monthStart = $now->copy()->startOfMonth();
 
-        $repRegionContributions = SalesOrder::whereBetween('order_date', [$data['revenueChart']['labels'][0], $this->getNow()->format('Y-m-d')])
+        $repRegionContributions = SalesOrder::whereBetween('order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])
             ->where('status', '!=', 'cancelled')
             ->join('regions', 'sales_orders.region_id', '=', 'regions.id')
             ->selectRaw('representative_id, region_id, regions.name as region_name, regions.color as region_color, SUM(amount) as revenue')
@@ -633,14 +635,14 @@ class SalesReportController extends Controller
 
         $data['regions'] = $data['regions']->map(function ($r) use ($data, $repRegionContributions) {
             $r['products'] = collect($this->productsInRegion($r['id']));
-            $r['reps'] = $data['reps']->where('region', $r['name'])->map(function ($rep) use ($r, $repRegionContributions) {
+            $r['reps'] = $data['reps']->map(function ($rep) use ($r, $repRegionContributions) {
                 $contribution = $repRegionContributions->get($rep['id'], collect())->firstWhere('region_name', $r['name']);
                 $regionRevenue = $contribution ? round($contribution->revenue) : 0;
                 return array_merge($rep, [
                     'regionRevenue' => $regionRevenue,
                     'regionShare' => $r['sales'] > 0 ? round(($regionRevenue / $r['sales']) * 100) : 0,
                 ]);
-            })->values();
+            })->filter(fn($rep) => $rep['regionRevenue'] > 0)->values();
             return $r;
         });
 
