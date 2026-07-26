@@ -2,15 +2,6 @@
 
 @php $pageTitle = 'Marketing Campaign Management'; @endphp
 
-{{--
-    NOTE: this page depends on the teammate's custom stylesheet (style.css),
-    which hasn't been shared yet. Once you get it, save it as:
-        public/css/mcm.css
-    and this page will pick it up automatically via the @push('styles') below.
-    Until then, this page will show correct DATA but with little/no visual
-    styling, since none of the class names here (card, badge, roi-bar-fill,
-    etc.) are Tailwind classes — they only mean something once mcm.css exists.
---}}
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/mcm.css') }}">
 @endpush
@@ -54,15 +45,27 @@
                     </a>
                 </div>
 
-                <table>
+                <table style="table-layout:fixed;">
+                    <colgroup>
+                        <col style="width:26%;">
+                        <col style="width:16%;">
+                        <col style="width:16%;">
+                        <col style="width:16%;">
+                        <col style="width:16%;">
+                        @if ($status === 'draft')
+                            <col style="width:90px;">
+                        @endif
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th>Campaign Name</th>
-                            <th>Channel</th>
-                            <th>Type</th>
-                            <th>Schedule</th>
-                            <th>Status</th>
-                            <th>Action</th>
+                            <th style="text-align:left;">Campaign Name</th>
+                            <th style="text-align:left;">Channel</th>
+                            <th style="text-align:left;">Type</th>
+                            <th style="text-align:left;">Schedule</th>
+                            <th style="text-align:left;">Status</th>
+                            @if ($status === 'draft')
+                                <th style="text-align:right; width:110px; padding-right:40px;">Action</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -73,19 +76,20 @@
                                 <td>{{ $campaign->type }}</td>
                                 <td>{{ \Carbon\Carbon::parse($campaign->send_date)->format('M j, Y') }}</td>
                                 <td><span class="badge {{ $campaign->status }}">{{ ucfirst($campaign->status) }}</span></td>
-                                <td>
-                                    @if ($status === 'draft')
+                              @if ($status === 'draft')
+                                    <td style="text-align:left; padding-right:20px;">
                                         <a href="{{ route('campaigns.edit', $campaign) }}"
                                            style="display:inline-block; padding:5px 12px; border-radius:6px;
                                                   background:#2563eb; color:#fff; text-decoration:none; font-size:12px;">
                                             Edit
                                         </a>
-                                    @endif
-                                </td>
+                                    </td>
+                                @endif
+                                 
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6">
+                                <td colspan="{{ $status === 'draft' ? 6 : 5 }}">
                                     @if ($status === 'draft')
                                         No draft campaigns yet.
                                     @elseif ($status === 'scheduled')
@@ -207,7 +211,7 @@
                         </div>
                         <div class="stat-text">
                             <div class="label">Total Campaigns</div>
-                            <div class="value">{{ $campaigns->count() }}</div>
+                            <div class="value">{{ $scheduledCount }}</div>
                             <div class="delta">+15% from last month</div>
                         </div>
                     </div>
@@ -325,64 +329,51 @@
                         </div>
                         <div class="stat-text">
                             <div class="label">Total ROI</div>
-                            <div class="value">12,960</div>
+                            <div class="value">15,880</div>
                             <div class="delta">+10% from last month</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Top performing Campaigns — still hardcoded; wire this up to
-                     real ROI figures once you're tracking spend/revenue per campaign -->
+                
                 <div class="roi-card">
                     <div class="roi-header-row">
-                    <span>Campaign</span>
-                    <div style="display:flex; align-items:center; gap:5px;">
-                        <span style="width:50px; flex-shrink:0;"></span>
-                        <span style="width:90px; text-align:center; flex-shrink:0;">ROI</span>
+                    <span>CAMPAIGN</span>
+                    <div style="display:flex; align-items:right; gap:230px;">
+                        <span style="width:100px; flex-shrink:0;"></span>
+                        <span style="width:100px; text-align:left;">ROI</span>
                     </div>
                 </div>
-
-                    <div class="roi-row">
+<div class="roi-row">
                         <span class="campaign-name">Summer Sale Blast</span>
-                        <div class="roi-bar-wrap">
-                            <div class="roi-bar-track"><div class="roi-bar-fill" style="width:92%;"></div></div>
-                            <span class="roi-value">&#8369; 9,359.00</span>
-                        </div>
+                       <div class="roi-bar-track"><div class="roi-bar-fill" data-width="85"></div></div>
+                        <span class="roi-value">&#8369; 4,436.00</span>
                     </div>
 
                     <div class="roi-row">
                         <span class="campaign-name">Weekend Flash Sale</span>
-                        <div class="roi-bar-wrap">
-                            <div class="roi-bar-track"><div class="roi-bar-fill" style="width:80%;"></div></div>
-                            <span class="roi-value">&#8369; 5,289.00</span>
-                        </div>
+                        <div class="roi-bar-track"><div class="roi-bar-fill" data-width="70"></div></div>
+                        <span class="roi-value">&#8369; 4,290.00</span>
                     </div>
 
                     <div class="roi-row">
                         <span class="campaign-name">Follow us on Instagram!</span>
-                        <div class="roi-bar-wrap">
-                            <div class="roi-bar-track"><div class="roi-bar-fill" style="width:70%;"></div></div>
-                            <span class="roi-value">&#8369; 6,756.00</span>
-                        </div>
+                        <div class="roi-bar-track"><div class="roi-bar-fill" data-width="60"></div></div>
+                        <span class="roi-value">&#8369; 3,025.00</span>
                     </div>
 
                     <div class="roi-row">
                         <span class="campaign-name">New Product SMS</span>
-                        <div class="roi-bar-wrap">
-                            <div class="roi-bar-track"><div class="roi-bar-fill" style="width:63%;"></div></div>
-                            <span class="roi-value">&#8369; 4,156.00</span>
-                        </div>
+                        <div class="roi-bar-track"><div class="roi-bar-fill" data-width="50"></div></div>
+                        <span class="roi-value">&#8369; 2,860.00</span>
                     </div>
 
                     <div class="roi-row">
                         <span class="campaign-name">Loyalty Reward</span>
-                        <div class="roi-bar-wrap">
-                            <div class="roi-bar-track"><div class="roi-bar-fill" style="width:55%;"></div></div>
-                            <span class="roi-value">&#8369; 9,909.00</span>
-                        </div>
+                        <div class="roi-bar-track"><div class="roi-bar-fill" data-width="30"></div></div>
+                        <span class="roi-value">&#8369; 1,368.00 </span>
                     </div>
 
-                    <footer class="arrow">&#8594;</footer>
                 </div>
             </div>
 
@@ -419,7 +410,19 @@
                 
             </div>
 
-        </div><!-- /col-right -->
+        </div>
+        <script>
+document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
+        document.querySelectorAll('.roi-bar-fill').forEach(function (bar) {
+            const target = bar.getAttribute('data-width');
+            if (target) {
+                bar.style.width = target + '%';
+            }
+        });
+    }, 150);
+});
+</script><!-- /col-right -->
 
     </div><!-- /page-columns -->
 
@@ -443,4 +446,5 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
+
 @endsection
