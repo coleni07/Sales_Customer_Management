@@ -78,11 +78,7 @@
                                         <i class="fa-regular fa-eye"></i>
                                     </button>
 
-                                    <a href="{{ route('purchase-history.index', ['customer_id' => $customer->id]) }}"
-                                       title="View {{ $customer->name }}'s complete purchase history"
-                                       class="text-gray-600 hover:text-navy transition text-base">
-                                        <i class="fa-solid fa-clock-rotate-left"></i>
-                                    </a>
+                                   
                                 </div>
                             </td>
                         </tr>
