@@ -36,6 +36,10 @@
 
     <div class="report-card">
         <h3>Region Breakdown — Products &amp; Representatives</h3>
+        <div class="filter-row" style="margin-bottom:16px;">
+            <input type="text" id="region-search" class="search-input" placeholder="Search regions, products, or reps..."
+                onkeyup="filterRegionDetails()">
+        </div>
         @foreach ($regions as $region)
             <div class="accordion-item">
                 <div class="accordion-header" onclick="toggleExpand('region-{{ $region['name'] }}')">
@@ -181,6 +185,16 @@
         function unhighlightRegion(name) {
             clearRegionHighlight(name);
             resetLineEmphasis();
+        }
+
+        function filterRegionDetails() {
+            const term = document.getElementById('region-search').value.toLowerCase().trim();
+            document.querySelectorAll('.accordion-item').forEach(item => {
+                const title = item.querySelector('.accordion-title')?.textContent.toLowerCase() || '';
+                const bodyText = item.querySelector('.accordion-body')?.textContent.toLowerCase() || '';
+                const visible = !term || title.includes(term) || bodyText.includes(term);
+                item.style.display = visible ? '' : 'none';
+            });
         }
     </script>
 @endpush

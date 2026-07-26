@@ -696,7 +696,7 @@ class SalesReportController extends Controller
             $handle = fopen('php://output', 'w');
 
             if ($report === 'product' || $report === 'all') {
-                fputcsv($handle, ['Product Report']);
+                fputcsv($handle, ['=== Product Report ===']);
                 fputcsv($handle, ['Product', 'Qty Sold', 'Actual', 'Target', 'Status']);
                 foreach ($data['products'] as $p) {
                     $status = $p['actual'] >= $p['target'] ? 'Above Target' : 'Below Target';
@@ -706,8 +706,7 @@ class SalesReportController extends Controller
             }
 
             if ($report === 'all') {
-                fputcsv($handle, ['Revenue Overview']);
-                fputcsv($handle, ['Metric', 'Value']);
+                fputcsv($handle, ['=== Revenue Overview ===']);
                 fputcsv($handle, ['Total Sales', '₱' . number_format($data['totalSales']['value'], 2)]);
                 fputcsv($handle, ['Monthly Target', '₱' . number_format($data['totalSales']['target'], 2)]);
                 fputcsv($handle, ['Target Achievement', $data['totalSales']['percent'] . '%']);
@@ -716,18 +715,17 @@ class SalesReportController extends Controller
             }
 
             if ($report === 'regional' || $report === 'all') {
-                fputcsv($handle, ['Regional Report']);
+                fputcsv($handle, ['=== Regional Report ===']);
                 fputcsv($handle, ['Region', 'Sales', 'Target', 'Percent']);
                 foreach ($data['regions'] as $r) {
-                    $percent = round(($r['sales'] / $r['target']) * 100);
+                    $percent = $r['target'] > 0 ? round(($r['sales'] / $r['target']) * 100) : 0;
                     fputcsv($handle, [$r['name'], $r['sales'], $r['target'], $percent . '%']);
                 }
                 fputcsv($handle, []);
             }
 
             if ($report === 'rep' || $report === 'all') {
-                fputcsv($handle, ['Representative Report']);
-                fputcsv($handle, ['Representative', 'Revenue', 'Deals Closed']);
+                fputcsv($handle, ['=== Representative Report ===']);
                 foreach ($data['reps'] as $r) {
                     fputcsv($handle, [$r['name'], $r['revenue'], $r['deals']]);
                 }
@@ -743,6 +741,7 @@ class SalesReportController extends Controller
     {
         $payload = [
             'report' => $report,
+            'reportTitle' => $report === 'all' ? 'Complete Sales Report' : ucfirst($report) . ' Report',
             ...$data,
         ];
 
@@ -793,6 +792,19 @@ class SalesReportController extends Controller
         }
 
         if ($report === 'regional' || $report === 'all') {
+            $sheet->setCellValue("A{$row}", 'Regional Report');
+            $row++;
+            $sheet->fromArray(['Region', 'Sales', 'Target', 'Percent'], null, "A{$row}");
+            $row++;
+            foreach ($data['regions'] as $r) {
+                $percent = $r['target'] > 0 ? round(($r['sales'] / $r['target']) * 100) : 0;
+                $sheet->fromArray([$r['name'], $r['sales'], $r['target'], $percent . '%'], null, "A{$row}");
+                $row++;
+            }
+            $row++;
+        }
+
+        if ($report === 'rep' || $report === 'all') {
             $sheet->setCellValue("A{$row}", 'Representative Report');
             $row++;
             $sheet->fromArray(['Representative', 'Revenue', 'Deals Closed'], null, "A{$row}");

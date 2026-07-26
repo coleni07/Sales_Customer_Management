@@ -45,7 +45,8 @@
 </head>
 
 <body>
-    <h1>Sales Report</h1>
+    @php $reportTitle = $report === 'all' ? 'Complete Sales Report' : ucfirst($report) . ' Report'; @endphp
+    <h1>{{ $reportTitle }}</h1>
     <p>Generated: {{ now()->format('F j, Y') }}</p>
 
     @if ($report === 'all' && isset($overview))
