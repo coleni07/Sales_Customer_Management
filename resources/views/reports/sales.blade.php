@@ -12,6 +12,19 @@
 
 @section('content')
 
+    {{-- Overview Breadcrumb & Quick Export --}}
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div class="detail-breadcrumb">
+            <a href="{{ route('reports.sales') }}">Sales Report</a>
+            <span class="crumb-sep"> &rsaquo; </span>
+            <span>Overview</span>
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center;">
+            <button type="button" onclick="openExportModal()" class="export-btn">Export</button>
+        </div>
+    </div>
+
     {{-- KPI ROW --}}
     <div class="kpi-row">
         <div class="card kpi-clickable accent-total" onclick="openKpiModal('total')">
