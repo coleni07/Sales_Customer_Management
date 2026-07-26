@@ -28,8 +28,34 @@ class Customer extends Model
     }
 
     /**
-     * Phone number masked for table/list display, e.g. "0912-***".
-     * Keeps the first 4 digits visible and hides the rest.
+     * Full phone number formatted in the Philippine style: 0917-123-4567.
+     * Used anywhere the complete, unmasked number is shown (e.g. the
+     * customer info modal, purchase history page).
+     */
+    public function getFormattedPhoneAttribute(): string
+    {
+        if (empty($this->phone)) {
+            return 'N/A';
+        }
+
+        $digits = preg_replace('/\D/', '', $this->phone);
+
+        // Normalize +63 country code to local 0-prefixed format (e.g. 639171234567 -> 09171234567)
+        if (strlen($digits) === 12 && str_starts_with($digits, '63')) {
+            $digits = '0' . substr($digits, 2);
+        }
+
+        if (strlen($digits) === 11) {
+            return substr($digits, 0, 4) . '-' . substr($digits, 4, 3) . '-' . substr($digits, 7);
+        }
+
+        // Fallback: return the original value as-is if it doesn't match a standard PH number
+        return $this->phone;
+    }
+
+    /**
+     * Phone number masked for table/list display, e.g. "0917-***".
+     * Only the first 4 digits are visible; everything after is masked.
      */
     public function getMaskedPhoneAttribute(): string
     {
@@ -38,6 +64,11 @@ class Customer extends Model
         }
 
         $digits = preg_replace('/\D/', '', $this->phone);
+
+        // Normalize +63 country code to local 0-prefixed format (e.g. 639171234567 -> 09171234567)
+        if (strlen($digits) === 12 && str_starts_with($digits, '63')) {
+            $digits = '0' . substr($digits, 2);
+        }
 
         if (strlen($digits) <= 4) {
             return str_repeat('*', strlen($digits));

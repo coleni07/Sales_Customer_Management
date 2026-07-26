@@ -21,9 +21,9 @@
         }
     </script>
 </head>
-<body class="bg-black min-h-screen flex items-start justify-center p-6">
+<body class="bg-white min-h-screen flex items-start justify-center p-6">
 
-    <div class="w-full max-w-3xl bg-white rounded-xl shadow-2xl overflow-hidden">
+    <div class="w-full max-w-3xl bg-white rounded-xl border border-gray-200 overflow-hidden">
         @yield('content')
     </div>
 

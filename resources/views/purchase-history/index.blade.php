@@ -28,15 +28,20 @@
         </div>
 
         @if ($customer)
+            
             <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-5 flex flex-wrap items-center justify-between gap-4">
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-2">
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-x-8 gap-y-2">
                     <div>
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</p>
                         <p class="text-sm text-gray-800 mt-0.5">{{ $customer->email }}</p>
                     </div>
                     <div>
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone</p>
-                        <p class="text-sm text-gray-800 mt-0.5 font-mono">{{ $customer->masked_phone }}</p>
+                        <p class="text-sm text-gray-800 mt-0.5 font-mono">{{ $customer->formatted_phone }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Address</p>
+                        <p class="text-sm text-gray-800 mt-0.5">{{ $customer->address ?: 'N/A' }}</p>
                     </div>
                     <div>
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</p>
@@ -48,6 +53,7 @@
                     </div>
                 </div>
             </div>
+    
         @endif
 
         <div class="grid grid-cols-3 gap-4 mb-6">
