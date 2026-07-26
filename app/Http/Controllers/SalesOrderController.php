@@ -9,30 +9,27 @@ class SalesOrderController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = 7;
-
-        // A notification link passes ?highlight=<id> to point at one specific
-        // order. That order can live on any page of the listing (it's just
-        // "the 3 latest pending orders", not necessarily page 1), so we work
-        // out which page it actually falls on and jump the pagination there
-        // — otherwise the detail panel would show an order that never
-        // appears as a row in the table at all.
-        $highlightId = $request->query('highlight');
-
-        if ($highlightId && !$request->query('page')) {
-            $orderedIds = SalesOrder::orderByDesc('order_date')->orderByDesc('id')->pluck('id');
-            $position = $orderedIds->search((int) $highlightId);
-
-            if ($position !== false) {
-                $request->query->set('page', intdiv($position, $perPage) + 1);
-            }
-        }
-
+        // Full list, not paginated server-side — the table now does live
+        // search/sort/pagination entirely in the browser (same pattern as
+        // the Support System page), so the search box can filter across
+        // every order instantly as the user types, not just the current page.
         $orders = SalesOrder::with('customer')
             ->latest('order_date')
             ->latest('id')
-            ->paginate($perPage)
-            ->withQueryString();
+            ->get();
+
+        $ordersData = $orders->map(fn ($order) => [
+            'id' => $order->id,
+            'order_no' => $order->order_no,
+            'customer_name' => $order->customer->name,
+            'amount' => (float) $order->amount,
+            'amount_label' => number_format($order->amount, 2),
+            'status' => $order->status,
+            'status_label' => ucfirst($order->status),
+            'status_classes' => $order->statusColor(),
+            'payment_label' => $order->paymentLabel(),
+            'order_date' => $order->order_date?->toIso8601String(),
+        ])->values();
 
         // Status tracking summary cards (Pending / Processing / Shipped / Delivered)
         $statusSummary = collect(['pending', 'processing', 'shipped', 'delivered', 'cancelled'])->map(function ($status) {
@@ -48,10 +45,10 @@ class SalesOrderController extends Controller
         $approvedCount = SalesOrder::where('approval_status', 'approved')->count();
         $unapprovedCount = SalesOrder::where('approval_status', 'unapproved')->count();
 
-        // Default selected order = the highlighted order (from a notification
-        // link) when it's present on this page, otherwise the first row on
-        // the page (mirrors the design) — so the detail panel always matches
-        // a row that's actually visible in the table.
+        // A notification link passes ?highlight=<id> to point at one
+        // specific order — default selected order = that one when present,
+        // otherwise just the most recent order.
+        $highlightId = $request->query('highlight');
         $selectedId = ($highlightId && $orders->firstWhere('id', (int) $highlightId))
             ? (int) $highlightId
             : $orders->first()?->id;
@@ -85,7 +82,7 @@ class SalesOrderController extends Controller
         ]) : null;
 
         return view('sales-orders.index', compact(
-            'orders',
+            'ordersData',
             'statusSummary',
             'approvedCount',
             'unapprovedCount',

@@ -79,10 +79,12 @@
                         </thead>
                         <tbody>
                             @foreach ($recentOrders as $order)
-                                <tr class="border-b border-slate-50 hover:bg-slate-50">
+                                <tr class="border-b border-slate-50 hover:bg-slate-50 cursor-pointer"
+                                    onclick="window.location='{{ route('sales-orders.index', ['highlight' => $order->id]) }}'">
                                     <td class="py-2.5">
                                         <a href="{{ route('sales-orders.index', ['highlight' => $order->id]) }}"
-                                            class="text-brand-dark font-medium hover:underline">
+                                            class="text-brand-dark font-medium hover:underline"
+                                            onclick="event.stopPropagation()">
                                             {{ $order->order_no }}
                                         </a>
                                     </td>
@@ -115,8 +117,14 @@
                         </thead>
                         <tbody>
                             @foreach ($latestTickets as $ticket)
-                                <tr class="border-b border-slate-50 hover:bg-slate-50">
-                                    <td class="py-2.5 font-medium text-brand-dark">{{ $ticket->code() }}</td>
+                                <tr class="border-b border-slate-50 hover:bg-slate-50 cursor-pointer"
+                                    onclick="window.location='{{ route('support.index', ['ticket' => $ticket->id]) }}'">
+                                    <td class="py-2.5 font-medium text-brand-dark">
+                                        <a href="{{ route('support.index', ['ticket' => $ticket->id]) }}"
+                                            class="hover:underline" onclick="event.stopPropagation()">
+                                            {{ $ticket->code() }}
+                                        </a>
+                                    </td>
                                     <td class="py-2.5">{{ $ticket->customer_name }}</td>
                                     <td class="py-2.5">
                                         <span
