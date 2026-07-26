@@ -15,7 +15,7 @@ class PurchaseHistoryController extends Controller
         $dateTo = $request->query('date_to');
         $customerId = $request->query('customer_id');
 
-        $orders = SalesOrder::with('items')
+        $orders = SalesOrder::with('items.product')
             ->when($status !== 'all', function ($query) use ($status) {
                 if ($status === 'completed') {
                     $query->where('status', 'delivered');

@@ -105,13 +105,17 @@ class DatabaseSeeder extends Seeder
         }
 
         Customer::factory(20)->create()->each(function ($customer) {
-            SalesOrder::factory(random_int(10, 25))->create([
+            $salesOrders = SalesOrder::factory(random_int(10, 25))->create([
                 'customer_id' => $customer->id,
                 'region_id' => \App\Models\Region::inRandomOrder()->value('id'),
                 'representative_id' => \App\Models\Representative::inRandomOrder()->value('id'),
-            ])->each(function ($order) {
+            ]);
+
+            $salesOrders->each(function ($order) {
                 $this->seedItems($order);
             });
+
+            $customer->update(['total_orders' => $salesOrders->count()]);
 
             Ticket::factory(random_int(0, 2))->create(['customer_id' => $customer->id]);
         });

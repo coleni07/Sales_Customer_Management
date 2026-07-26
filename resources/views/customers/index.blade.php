@@ -44,7 +44,7 @@
                             <td class="px-5 py-4 text-gray-700">{{ $customer->name }}</td>
                             <td class="px-5 py-4 text-gray-700">{{ $customer->location }}</td>
                             <td class="px-5 py-4 text-gray-700">{{ $customer->phone }}</td>
-                            <td class="px-5 py-4 text-center font-semibold text-gray-800">{{ $customer->total_orders }}</td>
+                            <td class="px-5 py-4 text-center font-semibold text-gray-800">{{ $customer->orders_count }}</td>
                             <td class="px-5 py-4 text-center">
                                 @if ($customer->status === 'Active')
                                     <span class="inline-block bg-green-200 text-green-800 text-xs font-semibold px-4 py-1.5 rounded-full">Active</span>
