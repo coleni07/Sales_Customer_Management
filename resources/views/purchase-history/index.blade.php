@@ -28,29 +28,67 @@
         </div>
 
         @if ($customer)
-            <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-5 flex flex-wrap items-center justify-between gap-4">
-                <div class="grid grid-cols-2 sm:grid-cols-5 gap-x-8 gap-y-2">
-                    <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</p>
-                        <p class="text-sm text-gray-800 mt-0.5">{{ $customer->email }}</p>
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-5 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+
+                <div class="flex flex-col items-center text-center shrink-0">
+                    <div class="w-20 h-20 rounded-full bg-navy/10 flex items-center justify-center text-navy text-2xl font-bold mb-4">
+                        {{ strtoupper(substr($customer->name, 0, 1)) }}
                     </div>
-                    <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone</p>
-                        <p class="text-sm text-gray-800 mt-0.5 font-mono">{{ $customer->formatted_phone }}</p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Address</p>
-                        <p class="text-sm text-gray-800 mt-0.5">{{ $customer->address ?: 'N/A' }}</p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</p>
-                        <p class="text-sm text-gray-800 mt-0.5">{{ $customer->location ?: 'N/A' }}</p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</p>
-                        <p class="text-sm text-gray-800 mt-0.5">{{ $customer->status }}</p>
-                    </div>
+                    <h2 class="text-xl font-bold text-gray-900">{{ $customer->name }}</h2>
+                    <p class="text-sm text-gray-500">{{ $customer->customer_code }}</p>
+
+                    @if ($customer->status === 'Active')
+                        <span class="inline-block bg-green-200 text-green-800 text-xs font-semibold px-4 py-1.5 rounded-full mt-3">Active</span>
+                    @else
+                        <span class="inline-block bg-red-200 text-red-700 text-xs font-semibold px-4 py-1.5 rounded-full mt-3">Inactive</span>
+                    @endif
                 </div>
+
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm flex-1 w-full">
+                    <div class="flex items-start gap-3">
+                        <i class="fa-solid fa-phone w-5 text-gray-400 mt-0.5"></i>
+                        <div>
+                            <dt class="text-gray-400 text-xs">Phone</dt>
+                            <dd class="text-gray-800 font-medium">{{ $customer->formatted_phone }}</dd>
+                        </div>
+                    </div>
+
+                    @if ($customer->email)
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid fa-envelope w-5 text-gray-400 mt-0.5"></i>
+                            <div>
+                                <dt class="text-gray-400 text-xs">Email</dt>
+                                <dd class="text-gray-800 font-medium">{{ $customer->email }}</dd>
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="flex items-start gap-3">
+                        <i class="fa-solid fa-location-dot w-5 text-gray-400 mt-0.5"></i>
+                        <div>
+                            <dt class="text-gray-400 text-xs">Location</dt>
+                            <dd class="text-gray-800 font-medium">{{ $customer->location ?: 'N/A' }}</dd>
+                        </div>
+                    </div>
+
+                    @if ($customer->address)
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid fa-house w-5 text-gray-400 mt-0.5"></i>
+                            <div>
+                                <dt class="text-gray-400 text-xs">Address</dt>
+                                <dd class="text-gray-800 font-medium">{{ $customer->address }}</dd>
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="flex items-start gap-3">
+                        <i class="fa-solid fa-cart-shopping w-5 text-gray-400 mt-0.5"></i>
+                        <div>
+                            <dt class="text-gray-400 text-xs">Total Orders</dt>
+                            <dd class="text-gray-800 font-medium">{{ $customer->total_orders }}</dd>
+                        </div>
+                    </div>
+                </dl>
             </div>
         @endif
 
