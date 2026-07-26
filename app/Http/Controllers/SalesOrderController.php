@@ -18,7 +18,7 @@ class SalesOrderController extends Controller
             ->latest('id')
             ->get();
 
-        $ordersData = $orders->map(fn ($order) => [
+        $ordersData = $orders->map(fn($order) => [
             'id' => $order->id,
             'order_no' => $order->order_no,
             'customer_name' => $order->customer->name,

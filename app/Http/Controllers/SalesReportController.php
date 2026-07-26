@@ -311,6 +311,104 @@ class SalesReportController extends Controller
             'regions' => $regions,
             'regionalChart' => $this->buildRegionalDailyTrend(),
             'reps' => $reps,
+            'insights' => $this->buildInsights($products, $regions, $reps),
+        ];
+    }
+
+    private function buildInsights(Collection $products, Collection $regions, Collection $reps): array
+    {
+        // --- Product Insights ---
+        $lowestProduct = $products->sortBy(fn($p) => $p['target'] > 0 ? ($p['actual'] / $p['target']) : 1)->first();
+        $topProduct = $products->sortByDesc('actual')->first();
+
+        $pGapPct = ($lowestProduct && $lowestProduct['target'] > 0)
+            ? round((($lowestProduct['target'] - $lowestProduct['actual']) / $lowestProduct['target']) * 100)
+            : 0;
+
+        $productInsights = [
+            [
+                'type' => 'warn',
+                'tag' => 'Inventory Check',
+                'text' => $lowestProduct ? "{$lowestProduct['name']} demand requires stock allocation review." : "Stock check required.",
+                'btn' => 'View Orders',
+                'link' => route('sales-orders.index'),
+            ],
+            [
+                'type' => 'warn',
+                'tag' => 'Underperformance',
+                'text' => $lowestProduct ? "{$lowestProduct['name']} sales are {$pGapPct}% below target this month." : "Sales below target.",
+                'btn' => 'Product Details',
+                'link' => route('reports.sales.products'),
+            ],
+            [
+                'type' => 'good',
+                'tag' => 'Growth Opportunity',
+                'text' => $topProduct ? "{$topProduct['name']} leads revenue at ₱" . number_format($topProduct['actual']) . "." : "High product demand.",
+                'btn' => 'Create Campaign',
+                'link' => route('campaigns.create'),
+            ],
+        ];
+
+        // --- Regional Insights ---
+        $lowestRegion = $regions->sortBy('percent')->first();
+        $topRegion = $regions->sortByDesc('percent')->first();
+
+        $regionalInsights = [
+            [
+                'type' => 'warn',
+                'tag' => 'Critical Alert',
+                'text' => $lowestRegion ? "{$lowestRegion['name']} is at {$lowestRegion['percent']}% of target. Launch a promotional campaign." : "Region behind target.",
+                'btn' => 'Create Campaign',
+                'link' => route('campaigns.create'),
+            ],
+            [
+                'type' => 'info',
+                'tag' => 'Stock Risk',
+                'text' => $topRegion ? "{$topRegion['name']} order volume is high; check warehouse stock levels." : "Regional demand spiking.",
+                'btn' => 'View Sales Orders',
+                'link' => route('sales-orders.index'),
+            ],
+            [
+                'type' => 'good',
+                'tag' => 'Growth Opportunity',
+                'text' => $topRegion ? "{$topRegion['name']} reached {$topRegion['percent']}% of target." : "Strong regional growth.",
+                'btn' => 'Regional Report',
+                'link' => route('reports.sales.regional'),
+            ],
+        ];
+
+        // --- Representative Insights ---
+        $topRep = $reps->sortByDesc('revenue')->first();
+        $lowestRep = $reps->sortBy('quotaPercent')->first();
+
+        $repInsights = [
+            [
+                'type' => 'good',
+                'tag' => 'Top Performer',
+                'text' => $topRep ? "{$topRep['name']} reached {$topRep['quotaPercent']}% quota with ₱" . number_format($topRep['revenue']) . "." : "Top performance achieved.",
+                'btn' => 'Leaderboard',
+                'link' => route('reports.sales.reps'),
+            ],
+            [
+                'type' => 'info',
+                'tag' => 'Coaching Opportunity',
+                'text' => $lowestRep ? "{$lowestRep['name']} is at {$lowestRep['quotaPercent']}% quota and may need support." : "Sales coaching needed.",
+                'btn' => 'Support Desk',
+                'link' => route('support.index'),
+            ],
+            [
+                'type' => 'warn',
+                'tag' => 'Territory Coverage',
+                'text' => $lowestRegion ? "{$lowestRegion['name']} region relies on limited rep coverage." : "Territory coverage gap.",
+                'btn' => 'Manage Reps',
+                'link' => route('reports.sales.reps'),
+            ],
+        ];
+
+        return [
+            'product' => $productInsights,
+            'regional' => $regionalInsights,
+            'rep' => $repInsights,
         ];
     }
 
