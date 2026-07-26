@@ -3,24 +3,22 @@
 namespace Database\Seeders;
 
 use App\Models\Customer;
-use App\Models\Campaign;
+use App\Models\Product;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
 use App\Models\Ticket;
-use App\Models\Workflow;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
     private function seedItems(SalesOrder $order): void
     {
-        // Safety shield: Prevent duplicating items if seedItems is called more than once
         if ($order->items()->count() > 0) {
             return;
         }
 
         $count = random_int(1, 4);
-        $products = \App\Models\Product::inRandomOrder()->take($count)->get();
+        $products = Product::inRandomOrder()->take($count)->get();
         $subtotal = 0;
 
         foreach ($products as $product) {
@@ -36,14 +34,9 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // Forward calculation for correct totals
-        $discountRate = 0.05;
-        $taxRate = 0.12;
-        $shipping = 100.00;
-
-        $discount = round($subtotal * $discountRate, 2);
-        $tax = round(($subtotal - $discount) * $taxRate, 2);
-        $amount = round($subtotal - $discount + $tax + $shipping, 2);
+        $discount = round($subtotal * 0.05, 2);
+        $tax = round(($subtotal - $discount) * 0.12, 2);
+        $amount = round($subtotal - $discount + $tax + 100.00, 2);
 
         $order->update([
             'subtotal' => $subtotal,
@@ -56,10 +49,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(SalesReportSeeder::class);
-        // ---- Named customers matching the mockups ----
-        // Extra fields (customer_code, location, total_orders, status) belong
-        // to the Customers module — merged in here so it's the SAME customer
-        // row used by Sales Orders/Tickets, not a duplicate set.
+
         $customerDetails = [
             'Juan Dela Cruz' => ['code' => 'CUST-001', 'location' => 'Brgy., Hugo Perez', 'phone' => '09178465394', 'total_orders' => 12, 'status' => 'Active'],
             'Maria Santos' => ['code' => 'CUST-002', 'location' => 'Brgy., San Agustin', 'phone' => '09458132647', 'total_orders' => 10, 'status' => 'Active'],
@@ -70,8 +60,7 @@ class DatabaseSeeder extends Seeder
             'Eloise Briderton' => ['code' => 'CUST-007', 'location' => 'Brgy., Lapidario', 'phone' => '09654832156', 'total_orders' => 7, 'status' => 'Inactive'],
         ];
 
-        $names = array_keys($customerDetails);
-        $customers = collect($names)->mapWithKeys(function ($name) use ($customerDetails) {
+        $customers = collect(array_keys($customerDetails))->mapWithKeys(function ($name) use ($customerDetails) {
             $d = $customerDetails[$name];
             return [
                 $name => Customer::factory()->create([
@@ -85,28 +74,15 @@ class DatabaseSeeder extends Seeder
             ];
         });
 
-        // ---- Sales orders matching the "Sales Orders" screen ----
-        // Dates are relative to today (e.g. "2 days ago") instead of fixed
-        // calendar dates, so these orders always land inside the CURRENT
-        // week/month whenever you run the seeder — keeping the Sales
-        // Overview chart populated instead of showing a flat ₱0 line.
         $orders = [
-            ['no' => 'SO-1001', 'cust' => 'Juan Dela Cruz', 'amount' => 3530.00, 'status' => 'pending', 'pay' => 'cod', 'approval' => 'unapproved', 'days_ago' => 0],
-            ['no' => 'SO-1002', 'cust' => 'Maria Santos', 'amount' => 19250.00, 'status' => 'processing', 'pay' => 'credit', 'approval' => 'approved', 'days_ago' => 0],
-            ['no' => 'SO-1003', 'cust' => 'Kevin Reyes', 'amount' => 1700.00, 'status' => 'shipped', 'pay' => 'cod', 'approval' => 'approved', 'days_ago' => 1],
-            ['no' => 'SO-1004', 'cust' => 'Ana Garcia', 'amount' => 1680.00, 'status' => 'delivered', 'pay' => 'debit', 'approval' => 'approved', 'days_ago' => 1],
-            ['no' => 'SO-1005', 'cust' => 'Luiz Mendoza', 'amount' => 13950.00, 'status' => 'shipped', 'pay' => 'debit', 'approval' => 'approved', 'days_ago' => 2],
-            ['no' => 'SO-1006', 'cust' => 'Sofie Lopez', 'amount' => 24000.00, 'status' => 'pending', 'pay' => 'cod', 'approval' => 'unapproved', 'days_ago' => 2],
-            ['no' => 'SO-1007', 'cust' => 'Eloise Briderton', 'amount' => 10300.00, 'status' => 'processing', 'pay' => 'cod', 'approval' => 'unapproved', 'days_ago' => 3],
+            ['no' => 'SO-10001', 'cust' => 'Juan Dela Cruz', 'status' => 'pending', 'pay' => 'cod', 'approval' => 'unapproved', 'days_ago' => 0],
+            ['no' => 'SO-10002', 'cust' => 'Maria Santos', 'status' => 'processing', 'pay' => 'credit', 'approval' => 'approved', 'days_ago' => 0],
+            ['no' => 'SO-10003', 'cust' => 'Kevin Reyes', 'status' => 'shipped', 'pay' => 'cod', 'approval' => 'approved', 'days_ago' => 1],
+            ['no' => 'SO-10004', 'cust' => 'Ana Garcia', 'status' => 'delivered', 'pay' => 'debit', 'approval' => 'approved', 'days_ago' => 1],
+            ['no' => 'SO-10005', 'cust' => 'Luiz Mendoza', 'status' => 'shipped', 'pay' => 'debit', 'approval' => 'approved', 'days_ago' => 2],
+            ['no' => 'SO-10006', 'cust' => 'Sofie Lopez', 'status' => 'pending', 'pay' => 'cod', 'approval' => 'unapproved', 'days_ago' => 2],
+            ['no' => 'SO-10007', 'cust' => 'Eloise Briderton', 'status' => 'processing', 'pay' => 'cod', 'approval' => 'unapproved', 'days_ago' => 3],
         ];
-
-        // 'amount' above is the authoritative total shown in the listing table,
-        // so subtotal/discount/tax are derived backwards from it (at a flat 5%
-        // discount + 12% VAT, matching the rest of the app) so that
-        // subtotal - discount + tax + shipping always equals amount exactly,
-        // and the order-detail panel always agrees with the table row.
-        $discountRate = 0.05;
-        $taxRate = 0.12;
 
         foreach ($orders as $o) {
             $salesOrder = SalesOrder::create([
@@ -114,13 +90,9 @@ class DatabaseSeeder extends Seeder
                 'customer_id' => $customers[$o['cust']]->id,
                 'region_id' => \App\Models\Region::inRandomOrder()->value('id'),
                 'representative_id' => \App\Models\Representative::inRandomOrder()->value('id'),
-                'subtotal' => 0, // This will be calculated and updated by seedItems
                 'discount_label' => '5% Corp',
-                'discount_amount' => 0,
                 'tax_label' => 'VAT 12%',
-                'tax_amount' => 0,
                 'shipping_fee' => 100.00,
-                'amount' => 0, // This will be calculated and updated by seedItems
                 'status' => $o['status'],
                 'payment_method' => $o['pay'],
                 'approval_status' => $o['approval'],
@@ -129,10 +101,9 @@ class DatabaseSeeder extends Seeder
                 'order_date' => now()->subDays($o['days_ago']),
             ]);
 
-            // Call our new seedItems method to add real products and fix the math
             $this->seedItems($salesOrder);
         }
-        // ---- Extra random data so charts/pagination have real volume ----
+
         Customer::factory(20)->create()->each(function ($customer) {
             SalesOrder::factory(random_int(10, 25))->create([
                 'customer_id' => $customer->id,
@@ -141,35 +112,14 @@ class DatabaseSeeder extends Seeder
             ])->each(function ($order) {
                 $this->seedItems($order);
             });
+
             Ticket::factory(random_int(0, 2))->create(['customer_id' => $customer->id]);
         });
 
-        // ---- MCM module: sample campaigns ----
-        $campaigns = [
-            ['name' => 'Summer Sale Blast', 'type' => 'Email', 'objective' => 'Sales', 'channel' => 'Email', 'audience' => 'All Customers', 'subject_line' => 'Summer Sale is here!', 'message' => 'Enjoy up to 30% off this summer.', 'send_date' => '2026-05-07', 'status' => 'scheduled'],
-            ['name' => 'Weekend Flashsale', 'type' => 'SMS', 'objective' => 'Sales', 'channel' => 'TikTok', 'audience' => 'New Leads', 'subject_line' => 'Weekend Flash Sale!', 'message' => '48-hour flash sale, don\'t miss out.', 'send_date' => '2026-06-12', 'status' => 'scheduled'],
-            ['name' => 'New Product SMS', 'type' => 'SMS', 'objective' => 'Awareness', 'channel' => 'SMS', 'audience' => 'Existing Customers', 'subject_line' => 'New Product Launch', 'message' => 'Check out our newest product line.', 'send_date' => '2026-05-24', 'status' => 'draft'],
-            ['name' => 'Follow us on Instagram!', 'type' => 'Social', 'objective' => 'Engagement', 'channel' => 'Instagram', 'audience' => 'All Customers', 'subject_line' => 'Follow us!', 'message' => 'Stay updated with our latest posts.', 'send_date' => '2026-05-29', 'status' => 'scheduled'],
-            ['name' => 'Loyalty Reward', 'type' => 'Email', 'objective' => 'Retention', 'channel' => 'Email', 'audience' => 'Loyalty Members', 'subject_line' => 'A reward just for you', 'message' => 'Enjoy this exclusive loyalty reward.', 'send_date' => '2026-06-01', 'status' => 'draft'],
-        ];
-
-        foreach ($campaigns as $c) {
-            Campaign::create($c);
-        }
-
-        // ---- MCM module: sample workflows ----
-        $workflows = [
-            ['name' => 'Welcome Series', 'trigger' => 'New Signup', 'status' => 'active', 'action' => 'Send Email', 'audience' => 'New Leads', 'leads_enrolled' => 120],
-            ['name' => 'Cart Abandonment', 'trigger' => 'Incomplete Checkout', 'status' => 'active', 'action' => 'Send SMS', 'audience' => 'Website Visitors', 'leads_enrolled' => 85],
-            ['name' => 'Re-engagement', 'trigger' => 'Inactive 30 Days', 'status' => 'paused', 'action' => 'Send Email', 'audience' => 'Dormant Customers', 'leads_enrolled' => 47],
-            ['name' => 'Birthday Offer', 'trigger' => 'Customer Birthday', 'status' => 'active', 'action' => 'Send Email', 'audience' => 'All Customers', 'leads_enrolled' => 63],
-        ];
-
-        foreach ($workflows as $w) {
-            Workflow::create($w);
-        }
-
-        // ---- Support System module (integrated from the SCM sub-module) ----
-        $this->call(SupportTicketSeeder::class);
+        $this->call([
+            CampaignSeeder::class,
+            WorkflowSeeder::class,
+            SupportTicketSeeder::class,
+        ]);
     }
 }
