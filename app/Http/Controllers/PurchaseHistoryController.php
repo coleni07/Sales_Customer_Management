@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
-use App\Models\Order;
+use App\Models\SalesOrder;
 use Illuminate\Http\Request;
 
 class PurchaseHistoryController extends Controller
@@ -21,36 +21,25 @@ class PurchaseHistoryController extends Controller
             'cancelled' => 'cancelled',
         ];
 
-        $orders = Order::with(['items' => function ($query) use ($status, $statusMap, $dateFrom, $dateTo) {
-                if (isset($statusMap[$status])) {
-                    $query->where('status', $statusMap[$status]);
-                }
-                if ($dateFrom && $dateTo) {
-                    $query->whereBetween('expected_delivery', [$dateFrom, $dateTo]);
-                }
-                $query->orderBy('expected_delivery');
-            }])
+        $orders = SalesOrder::with(['items.product'])
             ->when(isset($statusMap[$status]), function ($query) use ($status, $statusMap) {
-                $query->whereHas('items', function ($q) use ($status, $statusMap) {
-                    $q->where('status', $statusMap[$status]);
-                });
+                $query->where('status', $statusMap[$status]);
+            })
+            ->when($dateFrom && $dateTo, function ($query) use ($dateFrom, $dateTo) {
+                $query->whereBetween('order_date', [$dateFrom, $dateTo]);
             })
             ->when($customerId, function ($query) use ($customerId) {
                 $query->where('customer_id', $customerId);
             })
-            ->latest()
-            ->get()
-            ->filter(fn ($order) => $order->items->isNotEmpty())
-            ->values();
+            ->latest('order_date')
+            ->get();
 
         $customer = $customerId ? Customer::find($customerId) : null;
 
         $summary = [
             'orders_count' => $orders->count(),
             'items_count' => $orders->sum(fn ($order) => $order->items->count()),
-            'total_spent' => $orders->sum(fn ($order) => $order->items
-                ->where('status', 'delivered')
-                ->sum(fn ($item) => $item->price * $item->quantity)),
+            'total_spent' => $orders->where('status', 'delivered')->sum('amount'),
         ];
 
         return view('purchase-history.index', [

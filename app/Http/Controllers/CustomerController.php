@@ -24,7 +24,7 @@ class CustomerController extends Controller
         $customers = Customer::query()
             ->withCount('orders')
             ->with(['orders' => function ($query) {
-                $query->latest('payment_date')->limit(1);
+                $query->latest('order_date')->limit(1);
             }])
             ->when($search, function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")

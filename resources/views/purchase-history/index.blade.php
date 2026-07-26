@@ -78,59 +78,62 @@
             @endforeach
         </div>
 
+        @php
+            $statusStyles = [
+                'delivered' => 'bg-green-100 text-green-700',
+                'shipped' => 'bg-sky-100 text-sky-700',
+                'processing' => 'bg-amber-100 text-amber-700',
+                'pending' => 'bg-gray-100 text-gray-600',
+                'cancelled' => 'bg-red-100 text-red-600',
+            ];
+        @endphp
+
         @forelse ($orders as $order)
             <div class="border border-gray-200 rounded-xl p-5 mb-4">
 
                 <div class="flex items-start justify-between mb-4 flex-wrap gap-3">
                     <div>
-                        <p class="text-sm text-gray-800">Order : <span class="font-medium">{{ $order->order_number }}</span></p>
-                        <p class="text-sm text-gray-800 mt-1">Order Payment : <span class="font-medium">{{ $order->payment_date->format('jS F Y') }}</span></p>
+                        <p class="text-sm text-gray-800">Order : <span class="font-medium">{{ $order->order_no }}</span></p>
+                        <p class="text-sm text-gray-800 mt-1">Order Date : <span class="font-medium">{{ $order->order_date->format('jS F Y') }}</span></p>
                     </div>
+                    <span class="inline-block text-xs font-semibold px-4 py-1.5 rounded-full {{ $statusStyles[$order->status] ?? 'bg-gray-100 text-gray-600' }}">
+                        {{ ucfirst($order->status) }}
+                    </span>
                 </div>
 
                 <div class="grid grid-cols-[2fr_1fr_1fr] text-xs font-semibold text-gray-600 px-1 pb-2">
-                    <span></span>
-                    <span class="text-center">Status</span>
-                    <span class="text-center">Expected Delivery</span>
+                    <span>Product</span>
+                    <span class="text-center">Quantity</span>
+                    <span class="text-right">Price</span>
                 </div>
 
                 <div class="divide-y divide-gray-100">
                     @foreach ($order->items as $item)
                         <div class="grid grid-cols-[2fr_1fr_1fr] items-center py-4">
-                            <div class="flex items-center gap-4">
-                                <div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                                    <i class="fa-solid {{ $item->icon }} text-2xl text-gray-500"></i>
-                                </div>
-                                <div>
-                                    <p class="font-semibold text-gray-900">{{ $item->product_name }}</p>
-                                    <p class="text-xs text-gray-500">Store : {{ $item->store_name }}</p>
-                                    <p class="text-xs text-gray-700 mt-1">
-                                        Quantity : <span class="font-medium">{{ $item->quantity }}</span>
-                                        &nbsp;&nbsp;
-                                        <span class="text-blue-600 font-medium">Price</span> : <span class="font-semibold">Php {{ number_format($item->price, 2) }}</span>
-                                    </p>
-                                </div>
+                            <div>
+                                <p class="font-semibold text-gray-900">{{ $item->product->name ?? 'Unknown Product' }}</p>
+                                <p class="text-xs text-gray-500">{{ $item->product->category ?? '' }}</p>
                             </div>
-                            <p class="text-center text-sm font-medium {{ $item->status === 'delivered' ? 'text-green-600' : 'text-red-500' }}">
-                                {{ ucfirst($item->status) }}
-                            </p>
-                            <p class="text-center text-sm text-gray-700">{{ $item->expected_delivery->format('jS F Y') }}</p>
+                            <p class="text-center text-sm text-gray-700">{{ $item->qty }}</p>
+                            <p class="text-right text-sm font-semibold text-gray-800">Php {{ number_format($item->price, 2) }}</p>
                         </div>
                     @endforeach
                 </div>
 
-                @if ($status === 'completed')
-                    <div class="flex items-center justify-between pt-4 mt-2 border-t border-gray-100">
-                        <p class="text-sm text-gray-700">Payment is Succesfull!</p>
-                        <p class="bg-gray-100 rounded-full px-5 py-2 text-sm font-semibold text-gray-800">
-                            Total Price: Php {{ number_format($order->completed_total, 2) }}
-                        </p>
-                    </div>
-                @elseif ($status === 'cancelled')
-                    <div class="pt-4 mt-2 border-t border-gray-100 text-center">
-                        <p class="text-sm text-gray-700">Ordered Cancelled</p>
-                    </div>
-                @endif
+                <div class="flex items-center justify-between pt-4 mt-2 border-t border-gray-100">
+                    <p class="text-sm text-gray-700">
+                        @if ($order->status === 'delivered')
+                            Payment is Successful!
+                        @elseif ($order->status === 'cancelled')
+                            Order Cancelled
+                        @else
+                            Order {{ ucfirst($order->status) }}
+                        @endif
+                    </p>
+                    <p class="bg-gray-100 rounded-full px-5 py-2 text-sm font-semibold text-gray-800">
+                        Total Price: Php {{ number_format($order->amount, 2) }}
+                    </p>
+                </div>
             </div>
         @empty
             <p class="text-center text-gray-400 py-10">No orders found for this filter.</p>

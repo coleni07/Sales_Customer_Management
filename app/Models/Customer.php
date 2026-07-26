@@ -22,15 +22,18 @@ class Customer extends Model
         return $this->hasMany(Ticket::class);
     }
 
+    /**
+     * Alias kept for compatibility with existing views/controllers
+     * that reference $customer->orders — this points at the real
+     * SalesOrder model (there is no separate "orders" table).
+     */
     public function orders(): HasMany
     {
-        return $this->hasMany(Order::class);
+        return $this->hasMany(SalesOrder::class);
     }
 
     /**
      * Full phone number formatted in the Philippine style: 0917-123-4567.
-     * Used anywhere the complete, unmasked number is shown (e.g. the
-     * customer info modal, purchase history page).
      */
     public function getFormattedPhoneAttribute(): string
     {
@@ -53,7 +56,6 @@ class Customer extends Model
 
     /**
      * Phone number masked for table/list display, e.g. "0917-***".
-     * Only the first 4 digits are visible; everything after is masked.
      */
     public function getMaskedPhoneAttribute(): string
     {

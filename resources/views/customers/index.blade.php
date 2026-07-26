@@ -127,8 +127,8 @@
                                             ordersCount: @js($customer->orders_count),
                                             status: @js($customer->status),
                                             memberSince: @js(optional($customer->created_at)->format('jS F Y')),
-                                            lastOrderDate: @js(optional($lastOrder?->payment_date)->format('jS F Y')),
-                                            lastOrderNumber: @js($lastOrder?->order_number),
+                                            lastOrderDate: @js(optional($lastOrder?->order_date)->format('jS F Y')),
+                                            lastOrderNumber: @js($lastOrder?->order_no),
                                             historyUrl: @js(route('purchase-history.index', ['customer_id' => $customer->id])),
                                         }; modalOpen = true">
                                     <i class="fa-regular fa-eye"></i>
