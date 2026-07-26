@@ -30,7 +30,9 @@ class PurchaseHistoryController extends Controller
                 $query->where('customer_id', $customerId);
             })
             ->latest('order_date')
-            ->get();
+            ->latest('id')
+            ->paginate(5)
+            ->withQueryString();
 
         $customer = $customerId ? Customer::find($customerId) : null;
 

@@ -114,6 +114,17 @@
             <p class="text-center text-gray-400 py-10">No orders found for this filter.</p>
         @endforelse
 
+        @if ($orders->hasPages())
+            <div class="mt-6 flex items-center justify-between border-t border-gray-100 pt-4">
+                <div class="text-xs text-gray-500">
+                    Showing {{ $orders->firstItem() }} to {{ $orders->lastItem() }} of {{ $orders->total() }} orders
+                </div>
+                <div>
+                    {{ $orders->links() }}
+                </div>
+            </div>
+        @endif
+
     </div>
 
 @endsection
