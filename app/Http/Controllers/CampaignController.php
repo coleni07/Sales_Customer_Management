@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CampaignRequest;
 use App\Models\Campaign;
-use Illuminate\Http\Request;
 
 class CampaignController extends Controller
 {
@@ -12,30 +12,9 @@ class CampaignController extends Controller
         return view('campaigns.create');
     }
 
-    public function store(Request $request)
+    public function store(CampaignRequest $request)
     {
-        $validated = $request->validate([
-            'name'         => ['required', 'string', 'max:255'],
-            'type'         => ['required', 'string', 'max:255'],
-            'objective'    => ['required', 'string', 'max:255'],
-            'description'  => ['nullable', 'string'],
-
-            'channel'      => ['required', 'string', 'max:255'],
-            'audience'     => ['required', 'string', 'max:255'],
-            'subject_line' => ['required', 'string', 'max:255'],
-            'message'      => ['required', 'string', 'max:2000'],
-            'media'        => ['nullable', 'file', 'max:10240'],
-
-            'send_date'    => ['required', 'date'],
-            'send_time'    => ['nullable'],
-            'end_date'     => ['nullable', 'date'],
-            'repeat_campaign' => ['nullable', 'string', 'max:255'],
-            'send_option'  => ['required', 'in:immediate,schedule'],
-            'notes'        => ['nullable', 'string'],
-            'timezone'     => ['nullable', 'string', 'max:255'],
-
-            'status'       => ['required', 'in:draft,scheduled'],
-        ]);
+        $validated = $request->validated();
 
         if ($request->hasFile('media')) {
             $validated['media_path'] = $request->file('media')->store('campaign-media', 'public');
@@ -54,30 +33,9 @@ class CampaignController extends Controller
         return view('campaigns.create', compact('campaign'));
     }
 
-    public function update(Request $request, Campaign $campaign)
+    public function update(CampaignRequest $request, Campaign $campaign)
     {
-        $validated = $request->validate([
-            'name'         => ['required', 'string', 'max:255'],
-            'type'         => ['required', 'string', 'max:255'],
-            'objective'    => ['required', 'string', 'max:255'],
-            'description'  => ['nullable', 'string'],
-
-            'channel'      => ['required', 'string', 'max:255'],
-            'audience'     => ['required', 'string', 'max:255'],
-            'subject_line' => ['required', 'string', 'max:255'],
-            'message'      => ['required', 'string', 'max:2000'],
-            'media'        => ['nullable', 'file', 'max:10240'],
-
-            'send_date'    => ['required', 'date'],
-            'send_time'    => ['nullable'],
-            'end_date'     => ['nullable', 'date'],
-            'repeat_campaign' => ['nullable', 'string', 'max:255'],
-            'send_option'  => ['required', 'in:immediate,schedule'],
-            'notes'        => ['nullable', 'string'],
-            'timezone'     => ['nullable', 'string', 'max:255'],
-
-            'status'       => ['required', 'in:draft,scheduled'],
-        ]);
+        $validated = $request->validated();
 
         if ($request->hasFile('media')) {
             $validated['media_path'] = $request->file('media')->store('campaign-media', 'public');

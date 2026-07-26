@@ -6,7 +6,7 @@
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
 
         <form method="GET" action="{{ route('customers.index') }}" class="flex items-center justify-between mb-6 gap-4 flex-wrap">
-            <div class="flex items-center gap-3 flex-1 min-w-[260px]">
+<div class="flex items-center gap-3 flex-1 min-w-65">
                 <div class="relative flex-1 max-w-md">
                     <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Search Ticket ID, Customer"
