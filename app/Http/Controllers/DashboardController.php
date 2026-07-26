@@ -38,8 +38,25 @@ class DashboardController extends Controller
             ? round((($totalSales - $lastMonthSamePeriod) / $lastMonthSamePeriod) * 100, 1)
             : 0;
 
-        $ordersGrowth = 10.5;   // placeholder KPIs, swap for real period-over-period calc as needed
-        $customersGrowth = 6.7;
+        $thisMonthOrders = SalesOrder::whereBetween('order_date', [$monthStart->format('Y-m-d'), $now->format('Y-m-d')])->count();
+        $lastMonthOrdersSamePeriod = SalesOrder::whereBetween('order_date', [
+            $lastMonthStart->format('Y-m-d'),
+            $lastMonthStart->copy()->addDays($daysElapsed - 1)->format('Y-m-d'),
+        ])->count();
+
+        $ordersGrowth = $lastMonthOrdersSamePeriod > 0
+            ? round((($thisMonthOrders - $lastMonthOrdersSamePeriod) / $lastMonthOrdersSamePeriod) * 100, 1)
+            : 0;
+
+        $thisMonthCustomers = Customer::whereBetween('created_at', [$monthStart, $now])->count();
+        $lastMonthCustomersSamePeriod = Customer::whereBetween('created_at', [
+            $lastMonthStart,
+            $lastMonthStart->copy()->addDays($daysElapsed - 1),
+        ])->count();
+
+        $customersGrowth = $lastMonthCustomersSamePeriod > 0
+            ? round((($thisMonthCustomers - $lastMonthCustomersSamePeriod) / $lastMonthCustomersSamePeriod) * 100, 1)
+            : 0;
 
         // ---- Sales overview (current week, Mon-Sun) ----
         $weekStart = now()->startOfWeek(Carbon::MONDAY);

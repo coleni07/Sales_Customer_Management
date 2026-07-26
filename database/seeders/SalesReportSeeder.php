@@ -12,9 +12,9 @@ class SalesReportSeeder extends Seeder
     public function run(): void
     {
         // ===== Regions =====
-        $luzon = Region::create(['name' => 'Luzon', 'color' => '#14B8A6', 'monthly_target' => 14000]);
-        $visayas = Region::create(['name' => 'Visayas', 'color' => '#3B82F6', 'monthly_target' => 8500]);
-        $mindanao = Region::create(['name' => 'Mindanao', 'color' => '#F5B301', 'monthly_target' => 5500]);
+        $luzon = Region::create(['name' => 'Luzon', 'color' => '#14B8A6', 'monthly_target' => 180000.00]);
+        $visayas = Region::create(['name' => 'Visayas', 'color' => '#3B82F6', 'monthly_target' => 110000.00]);
+        $mindanao = Region::create(['name' => 'Mindanao', 'color' => '#F5B301', 'monthly_target' => 70000.00]);
 
         // ===== Products (Realistic PHP Pricing) =====
         $products = [
@@ -35,8 +35,8 @@ class SalesReportSeeder extends Seeder
         }
 
         // ===== Representatives (one home rep per region) =====
-        Representative::create(['name' => 'Maria Santos', 'region_id' => $luzon->id, 'monthly_quota' => 12000]);
-        Representative::create(['name' => 'Jose Reyes', 'region_id' => $visayas->id, 'monthly_quota' => 8000]);
-        Representative::create(['name' => 'Ana Cruz', 'region_id' => $mindanao->id, 'monthly_quota' => 5500]);
+        Representative::create(['name' => 'Maria Santos', 'region_id' => $luzon->id, 'monthly_quota' => 120000.00]);
+        Representative::create(['name' => 'Jose Reyes', 'region_id' => $visayas->id, 'monthly_quota' => 80000.00]);
+        Representative::create(['name' => 'Ana Cruz', 'region_id' => $mindanao->id, 'monthly_quota' => 50000.00]);
     }
 }
