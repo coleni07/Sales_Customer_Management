@@ -5,7 +5,7 @@
         ['label' => 'Customers', 'route' => 'customers.index', 'icon' => 'users'],
         ['label' => 'Support System', 'route' => 'support.index', 'icon' => 'support'],
         ['label' => 'Reports', 'route' => 'reports.sales', 'match' => 'reports.*', 'icon' => 'chart'],
-        ['label' => 'MCM', 'route' => 'mcm.index', 'icon' => 'grid-alt'],
+        ['label' => 'MCM', 'route' => 'mcm.index', 'icon' => 'megaphone'],
     ];
 @endphp
 
