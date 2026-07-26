@@ -23,7 +23,8 @@
                 { key: 'all', label: 'All' },
                 { key: 'completed', label: 'Completed' },
                 { key: 'pending', label: 'Pending' },
-                { key: 'shipped_delivered', label: 'Shipped/Delivered' },
+                { key: 'shipped', label: 'Shipped' },
+                { key: 'delivered', label: 'Delivered' },
                 { key: 'cancelled', label: 'Cancelled' },
             ],
             async loadHistory(status) {

@@ -19,7 +19,8 @@ class PurchaseHistoryController extends Controller
         $statusMap = [
             'completed' => ['delivered'],
             'pending' => ['pending'],
-            'shipped_delivered' => ['shipped', 'delivered'],
+            'shipped' => ['shipped'],
+            'delivered' => ['delivered'],
             'cancelled' => ['cancelled'],
         ];
 
