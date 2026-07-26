@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SupportTicket;
+use App\Models\Ticket;
 
 class SupportTicketController extends Controller
 {
     public function index()
     {
-        $tickets = SupportTicket::orderBy('id')->get();
-
+        $tickets = Ticket::with('customer')->orderBy('id')->get();
         return view('support.index', compact('tickets'));
     }
 }

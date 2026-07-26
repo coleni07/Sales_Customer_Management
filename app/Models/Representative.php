@@ -18,8 +18,9 @@ class Representative extends Model
         return $this->belongsTo(Region::class);
     }
 
-    public function sales(): HasMany
+
+    public function salesOrders(): HasMany
     {
-        return $this->hasMany(Sale::class);
+        return $this->hasMany(SalesOrder::class);
     }
 }

@@ -3,128 +3,96 @@
 namespace Database\Seeders;
 
 use App\Models\Customer;
-use App\Models\Campaign;
-use App\Models\Order;
-use App\Models\OrderItem;
+use App\Models\Product;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
 use App\Models\Ticket;
-use App\Models\Workflow;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Pool of realistic product names to pull from when generating items for an order.
-     */
-    private array $productPool = [
-        'Battery', 'Mouse', 'Mouse Pad', 'Keyboard', 'Speaker', 'Camera',
-        'Watch', 'Charger', 'Headphones', 'Monitor', 'Webcam', 'Microphone',
-        'Router', 'Power Bank', 'Flash Drive', 'HDMI Cable', 'Laptop Stand',
-    ];
-
-    /**
-     * Create between 2 and 6 random items for an order, with prices that
-     * add up to the order's subtotal so the numbers stay consistent.
-     */
     private function seedItems(SalesOrder $order): void
     {
-        $count = random_int(2, 6);
-        $products = collect($this->productPool)->shuffle()->take($count)->values();
-        $weights = collect(range(1, $count))->map(fn () => random_int(10, 100));
-        $weightSum = $weights->sum();
+        if ($order->items()->count() > 0) {
+            return;
+        }
 
-        $remaining = $order->subtotal;
+        $count = random_int(1, 4);
+        $products = Product::inRandomOrder()->take($count)->get();
+        $subtotal = 0;
 
-        foreach ($products as $i => $name) {
-            $isLast = $i === $count - 1;
-            $price = $isLast
-                ? round($remaining, 2)
-                : round(($weights[$i] / $weightSum) * $order->subtotal, 2);
-            $remaining -= $price;
+        foreach ($products as $product) {
+            $qty = random_int(1, 3);
+            $price = $product->price;
+            $subtotal += ($price * $qty);
 
             SalesOrderItem::create([
                 'sales_order_id' => $order->id,
-                'item_name' => $name,
-                'qty' => 1,
-                'price' => max($price, 0),
+                'product_id' => $product->id,
+                'qty' => $qty,
+                'price' => $price,
             ]);
         }
+
+        $discount = round($subtotal * 0.05, 2);
+        $tax = round(($subtotal - $discount) * 0.12, 2);
+        $amount = round($subtotal - $discount + $tax + 100.00, 2);
+
+        $order->update([
+            'subtotal' => $subtotal,
+            'discount_amount' => $discount,
+            'tax_amount' => $tax,
+            'amount' => $amount,
+        ]);
     }
 
     public function run(): void
     {
-        // ---- Named customers matching the mockups ----
-        // Extra fields (customer_code, location, total_orders, status) belong
-        // to the Customers module — merged in here so it's the SAME customer
-        // row used by Sales Orders/Tickets, not a duplicate set.
+        $this->call(SalesReportSeeder::class);
+
         $customerDetails = [
-            'Juan Dela Cruz'   => ['code' => 'CUST-001', 'location' => 'Brgy., Hugo Perez',  'phone' => '09178465394', 'total_orders' => 12, 'status' => 'Active'],
-            'Maria Santos'     => ['code' => 'CUST-002', 'location' => 'Brgy., San Agustin', 'phone' => '09458132647', 'total_orders' => 10, 'status' => 'Active'],
-            'Kevin Reyes'      => ['code' => 'CUST-003', 'location' => 'Brgy., Gregorio',    'phone' => '09458692475', 'total_orders' => 8,  'status' => 'Inactive'],
-            'Ana Garcia'       => ['code' => 'CUST-004', 'location' => 'Brgy., Luciano',     'phone' => '09458361274', 'total_orders' => 11, 'status' => 'Active'],
-            'Luiz Mendoza'     => ['code' => 'CUST-005', 'location' => 'Brgy., De Ocampo',   'phone' => '09458632147', 'total_orders' => 13, 'status' => 'Active'],
-            'Sofie Lopez'      => ['code' => 'CUST-006', 'location' => 'Brgy., Cabuco',      'phone' => '09546321486', 'total_orders' => 5,  'status' => 'Active'],
-            'Eloise Briderton' => ['code' => 'CUST-007', 'location' => 'Brgy., Lapidario',   'phone' => '09654832156', 'total_orders' => 7,  'status' => 'Inactive'],
+            'Juan Dela Cruz' => ['code' => 'CUST-001', 'location' => 'Brgy., Hugo Perez', 'phone' => '09178465394', 'total_orders' => 12, 'status' => 'Active'],
+            'Maria Santos' => ['code' => 'CUST-002', 'location' => 'Brgy., San Agustin', 'phone' => '09458132647', 'total_orders' => 10, 'status' => 'Active'],
+            'Kevin Reyes' => ['code' => 'CUST-003', 'location' => 'Brgy., Gregorio', 'phone' => '09458692475', 'total_orders' => 8, 'status' => 'Inactive'],
+            'Ana Garcia' => ['code' => 'CUST-004', 'location' => 'Brgy., Luciano', 'phone' => '09458361274', 'total_orders' => 11, 'status' => 'Active'],
+            'Luiz Mendoza' => ['code' => 'CUST-005', 'location' => 'Brgy., De Ocampo', 'phone' => '09458632147', 'total_orders' => 13, 'status' => 'Active'],
+            'Sofie Lopez' => ['code' => 'CUST-006', 'location' => 'Brgy., Cabuco', 'phone' => '09546321486', 'total_orders' => 5, 'status' => 'Active'],
+            'Eloise Briderton' => ['code' => 'CUST-007', 'location' => 'Brgy., Lapidario', 'phone' => '09654832156', 'total_orders' => 7, 'status' => 'Inactive'],
         ];
 
-        $names = array_keys($customerDetails);
-        $customers = collect($names)->mapWithKeys(function ($name) use ($customerDetails) {
+        $customers = collect(array_keys($customerDetails))->mapWithKeys(function ($name) use ($customerDetails) {
             $d = $customerDetails[$name];
-            return [$name => Customer::factory()->create([
-                'name' => $name,
-                'customer_code' => $d['code'],
-                'location' => $d['location'],
-                'phone' => $d['phone'],
-                'total_orders' => $d['total_orders'],
-                'status' => $d['status'],
-            ])];
+            return [
+                $name => Customer::factory()->create([
+                    'name' => $name,
+                    'customer_code' => $d['code'],
+                    'location' => $d['location'],
+                    'phone' => $d['phone'],
+                    'total_orders' => $d['total_orders'],
+                    'status' => $d['status'],
+                ])
+            ];
         });
 
-        // ---- Sales orders matching the "Sales Orders" screen ----
-        // Dates are relative to today (e.g. "2 days ago") instead of fixed
-        // calendar dates, so these orders always land inside the CURRENT
-        // week/month whenever you run the seeder — keeping the Sales
-        // Overview chart populated instead of showing a flat ₱0 line.
         $orders = [
-            ['no' => 'SO-1001', 'cust' => 'Juan Dela Cruz', 'amount' => 3530.00, 'status' => 'pending', 'pay' => 'cod', 'approval' => 'unapproved', 'days_ago' => 0],
-            ['no' => 'SO-1002', 'cust' => 'Maria Santos', 'amount' => 19250.00, 'status' => 'processing', 'pay' => 'credit', 'approval' => 'approved', 'days_ago' => 0],
-            ['no' => 'SO-1003', 'cust' => 'Kevin Reyes', 'amount' => 1700.00, 'status' => 'shipped', 'pay' => 'cod', 'approval' => 'approved', 'days_ago' => 1],
-            ['no' => 'SO-1004', 'cust' => 'Ana Garcia', 'amount' => 1680.00, 'status' => 'delivered', 'pay' => 'debit', 'approval' => 'approved', 'days_ago' => 1],
-            ['no' => 'SO-1005', 'cust' => 'Luiz Mendoza', 'amount' => 13950.00, 'status' => 'shipped', 'pay' => 'debit', 'approval' => 'approved', 'days_ago' => 2],
-            ['no' => 'SO-1006', 'cust' => 'Sofie Lopez', 'amount' => 24000.00, 'status' => 'pending', 'pay' => 'cod', 'approval' => 'unapproved', 'days_ago' => 2],
-            ['no' => 'SO-1007', 'cust' => 'Eloise Briderton', 'amount' => 10300.00, 'status' => 'processing', 'pay' => 'cod', 'approval' => 'unapproved', 'days_ago' => 3],
+            ['no' => 'SO-10001', 'cust' => 'Juan Dela Cruz', 'status' => 'pending', 'pay' => 'cod', 'approval' => 'unapproved', 'days_ago' => 0],
+            ['no' => 'SO-10002', 'cust' => 'Maria Santos', 'status' => 'processing', 'pay' => 'credit', 'approval' => 'approved', 'days_ago' => 0],
+            ['no' => 'SO-10003', 'cust' => 'Kevin Reyes', 'status' => 'shipped', 'pay' => 'cod', 'approval' => 'approved', 'days_ago' => 1],
+            ['no' => 'SO-10004', 'cust' => 'Ana Garcia', 'status' => 'delivered', 'pay' => 'debit', 'approval' => 'approved', 'days_ago' => 1],
+            ['no' => 'SO-10005', 'cust' => 'Luiz Mendoza', 'status' => 'shipped', 'pay' => 'debit', 'approval' => 'approved', 'days_ago' => 2],
+            ['no' => 'SO-10006', 'cust' => 'Sofie Lopez', 'status' => 'pending', 'pay' => 'cod', 'approval' => 'unapproved', 'days_ago' => 2],
+            ['no' => 'SO-10007', 'cust' => 'Eloise Briderton', 'status' => 'processing', 'pay' => 'cod', 'approval' => 'unapproved', 'days_ago' => 3],
         ];
 
-        // 'amount' above is the authoritative total shown in the listing table,
-        // so subtotal/discount/tax are derived backwards from it (at a flat 5%
-        // discount + 12% VAT, matching the rest of the app) so that
-        // subtotal - discount + tax + shipping always equals amount exactly,
-        // and the order-detail panel always agrees with the table row.
-        $discountRate = 0.05;
-        $taxRate = 0.12;
-
         foreach ($orders as $o) {
-            $shipping = $o['no'] === 'SO-1001' ? 80.00 : 100.00;
-
-            $subtotal = round(($o['amount'] - $shipping) / ((1 - $discountRate) * (1 + $taxRate)), 2);
-            $discount = round($subtotal * $discountRate, 2);
-            $tax = round(($subtotal - $discount) * $taxRate, 2);
-
-            // Absorb any leftover centavo from rounding into shipping so the
-            // breakdown reconciles to the exact target amount.
-            $shipping = round($shipping + ($o['amount'] - ($subtotal - $discount + $tax + $shipping)), 2);
-
             $salesOrder = SalesOrder::create([
                 'order_no' => $o['no'],
                 'customer_id' => $customers[$o['cust']]->id,
-                'subtotal' => $subtotal,
+                'region_id' => \App\Models\Region::inRandomOrder()->value('id'),
+                'representative_id' => \App\Models\Representative::inRandomOrder()->value('id'),
                 'discount_label' => '5% Corp',
-                'discount_amount' => $discount,
                 'tax_label' => 'VAT 12%',
-                'tax_amount' => $tax,
-                'shipping_fee' => $shipping,
-                'amount' => $o['amount'],
+                'shipping_fee' => 100.00,
                 'status' => $o['status'],
                 'payment_method' => $o['pay'],
                 'approval_status' => $o['approval'],
@@ -133,116 +101,29 @@ class DatabaseSeeder extends Seeder
                 'order_date' => now()->subDays($o['days_ago']),
             ]);
 
-            if ($o['no'] === 'SO-1001') {
-                // Same two products as before, rescaled so they sum to the
-                // corrected subtotal instead of a stale hardcoded total.
-                $speaker = round($subtotal * (2300 / 3500), 2);
-                $watch = round($subtotal - $speaker, 2);
-                SalesOrderItem::create(['sales_order_id' => $salesOrder->id, 'item_name' => 'Speaker', 'qty' => 1, 'price' => $speaker]);
-                SalesOrderItem::create(['sales_order_id' => $salesOrder->id, 'item_name' => 'Watch', 'qty' => 1, 'price' => $watch]);
-            } else {
-                $this->seedItems($salesOrder);
-            }
+            $this->seedItems($salesOrder);
         }
 
-        // ---- Tickets matching the "Latest Tickets" widget ----
-        $tickets = [
-            ['no' => 'TK-101', 'cust' => 'Juan Dela Cruz', 'status' => 'open'],
-            ['no' => 'TK-102', 'cust' => 'Maria Santos', 'status' => 'in_progress'],
-            ['no' => 'TK-103', 'cust' => 'Kevin Reyes', 'status' => 'open'],
-            ['no' => 'TK-104', 'cust' => 'Ana Garcia', 'status' => 'closed'],
-            ['no' => 'TK-105', 'cust' => 'Eloise Briderton', 'status' => 'closed'],
-        ];
-
-        foreach ($tickets as $t) {
-            Ticket::create([
-                'ticket_no' => $t['no'],
-                'customer_id' => $customers[$t['cust']]->id,
-                'subject' => 'Support request',
-                'status' => $t['status'],
-            ]);
-        }
-
-        // ---- Extra random data so charts/pagination have real volume ----
         Customer::factory(20)->create()->each(function ($customer) {
-            SalesOrder::factory(random_int(1, 4))->create(['customer_id' => $customer->id])
-                ->each(function ($order) {
-                    $this->seedItems($order);
-                });
+            $salesOrders = SalesOrder::factory(random_int(10, 25))->create([
+                'customer_id' => $customer->id,
+                'region_id' => \App\Models\Region::inRandomOrder()->value('id'),
+                'representative_id' => \App\Models\Representative::inRandomOrder()->value('id'),
+            ]);
+
+            $salesOrders->each(function ($order) {
+                $this->seedItems($order);
+            });
+
+            $customer->update(['total_orders' => $salesOrders->count()]);
+
             Ticket::factory(random_int(0, 2))->create(['customer_id' => $customer->id]);
         });
 
-        // ---- MCM module: sample campaigns ----
-        $campaigns = [
-            ['name' => 'Summer Sale Blast', 'type' => 'Email', 'objective' => 'Sales', 'channel' => 'Email', 'audience' => 'All Customers', 'subject_line' => 'Summer Sale is here!', 'message' => 'Enjoy up to 30% off this summer.', 'send_date' => '2026-05-07', 'status' => 'scheduled'],
-            ['name' => 'Weekend Flashsale', 'type' => 'SMS', 'objective' => 'Sales', 'channel' => 'TikTok', 'audience' => 'New Leads', 'subject_line' => 'Weekend Flash Sale!', 'message' => '48-hour flash sale, don\'t miss out.', 'send_date' => '2026-06-12', 'status' => 'scheduled'],
-            ['name' => 'New Product SMS', 'type' => 'SMS', 'objective' => 'Awareness', 'channel' => 'SMS', 'audience' => 'Existing Customers', 'subject_line' => 'New Product Launch', 'message' => 'Check out our newest product line.', 'send_date' => '2026-05-24', 'status' => 'draft'],
-            ['name' => 'Follow us on Instagram!', 'type' => 'Social', 'objective' => 'Engagement', 'channel' => 'Instagram', 'audience' => 'All Customers', 'subject_line' => 'Follow us!', 'message' => 'Stay updated with our latest posts.', 'send_date' => '2026-05-29', 'status' => 'scheduled'],
-            ['name' => 'Loyalty Reward', 'type' => 'Email', 'objective' => 'Retention', 'channel' => 'Email', 'audience' => 'Loyalty Members', 'subject_line' => 'A reward just for you', 'message' => 'Enjoy this exclusive loyalty reward.', 'send_date' => '2026-06-01', 'status' => 'draft'],
-        ];
-
-        foreach ($campaigns as $c) {
-            Campaign::create($c);
-        }
-
-        // ---- MCM module: sample workflows ----
-        $workflows = [
-            ['name' => 'Welcome Series', 'trigger' => 'New Signup', 'status' => 'active', 'action' => 'Send Email', 'audience' => 'New Leads', 'leads_enrolled' => 120],
-            ['name' => 'Cart Abandonment', 'trigger' => 'Incomplete Checkout', 'status' => 'active', 'action' => 'Send SMS', 'audience' => 'Website Visitors', 'leads_enrolled' => 85],
-            ['name' => 'Re-engagement', 'trigger' => 'Inactive 30 Days', 'status' => 'paused', 'action' => 'Send Email', 'audience' => 'Dormant Customers', 'leads_enrolled' => 47],
-            ['name' => 'Birthday Offer', 'trigger' => 'Customer Birthday', 'status' => 'active', 'action' => 'Send Email', 'audience' => 'All Customers', 'leads_enrolled' => 63],
-        ];
-
-        foreach ($workflows as $w) {
-            Workflow::create($w);
-        }
-
-        // ---- Support System module (integrated from the SCM sub-module) ----
-        $this->call(SupportTicketSeeder::class);
-
-        // ---- Customers module: purchase history orders ----
-        // First order matches the teammate's original seed data exactly.
-        $order = Order::create([
-            'customer_id' => $customers['Juan Dela Cruz']->id,
-            'order_number' => '12345678',
-            'payment_date' => '2026-06-18',
+        $this->call([
+            CampaignSeeder::class,
+            WorkflowSeeder::class,
+            SupportTicketSeeder::class,
         ]);
-        $juanItems = [
-            ['product_name' => 'Marshall Speaker', 'store_name' => 'Mar Studios', 'quantity' => 1, 'price' => 23402.00, 'icon' => 'fa-volume-high', 'status' => 'delivered', 'expected_delivery' => '2026-03-23'],
-            ['product_name' => 'Fujifilm XF10', 'store_name' => 'Cams Studios', 'quantity' => 1, 'price' => 39169.00, 'icon' => 'fa-camera', 'status' => 'delivered', 'expected_delivery' => '2026-03-23'],
-            ['product_name' => 'Marshall Wireless Headphones', 'store_name' => 'Mar Studios', 'quantity' => 1, 'price' => 9668.00, 'icon' => 'fa-headphones-simple', 'status' => 'cancelled', 'expected_delivery' => '2026-03-26'],
-        ];
-        foreach ($juanItems as $item) {
-            OrderItem::create(['order_id' => $order->id, ...$item]);
-        }
-
-        // A few more orders across other named customers, for a fuller demo
-        // of the purchase-history filters (All / Completed / Cancelled).
-        $moreOrders = [
-            ['cust' => 'Maria Santos', 'order_number' => '20450112', 'payment_date' => '2026-06-02', 'items' => [
-                ['product_name' => 'Logitech Wireless Mouse', 'store_name' => 'Click Hub', 'quantity' => 2, 'price' => 1250.00, 'icon' => 'fa-computer-mouse', 'status' => 'delivered', 'expected_delivery' => '2026-06-08'],
-                ['product_name' => 'Mechanical Keyboard', 'store_name' => 'Click Hub', 'quantity' => 1, 'price' => 3499.00, 'icon' => 'fa-keyboard', 'status' => 'delivered', 'expected_delivery' => '2026-06-08'],
-            ]],
-            ['cust' => 'Kevin Reyes', 'order_number' => '20450198', 'payment_date' => '2026-05-20', 'items' => [
-                ['product_name' => 'Canon EOS M50', 'store_name' => 'Cams Studios', 'quantity' => 1, 'price' => 42990.00, 'icon' => 'fa-camera-retro', 'status' => 'cancelled', 'expected_delivery' => '2026-05-27'],
-            ]],
-            ['cust' => 'Ana Garcia', 'order_number' => '20450233', 'payment_date' => '2026-06-10', 'items' => [
-                ['product_name' => 'Smart Watch Series 5', 'store_name' => 'Time Zone', 'quantity' => 1, 'price' => 8990.00, 'icon' => 'fa-clock', 'status' => 'delivered', 'expected_delivery' => '2026-06-15'],
-            ]],
-        ];
-
-        foreach ($moreOrders as $o) {
-            $order = Order::create([
-                'customer_id' => $customers[$o['cust']]->id,
-                'order_number' => $o['order_number'],
-                'payment_date' => $o['payment_date'],
-            ]);
-            foreach ($o['items'] as $item) {
-                OrderItem::create(['order_id' => $order->id, ...$item]);
-            }
-        }
-
-        // ---- Sales Report module: teammate's own seeder (regions, products, representatives, ~200 days of sales) ----
-        $this->call(SalesReportSeeder::class);
     }
 }
