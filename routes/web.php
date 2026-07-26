@@ -14,40 +14,52 @@ use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\WorkflowController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', DashboardController::class . '@index')->name('dashboard');
+// Dashboard
+Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-Route::get('/sales-orders', [SalesOrderController::class, 'index'])->name('sales-orders.index');
-Route::get('/sales-orders/{salesOrder}', [SalesOrderController::class, 'show'])->name('sales-orders.show');
-Route::put('/sales-orders/{salesOrder}', [SalesOrderController::class, 'update'])->name('sales-orders.update');
-Route::post('/sales-orders/{salesOrder}/simulate-webhook', [SalesOrderController::class, 'simulateWebhook'])->name('sales-orders.simulate-webhook');
-
-// Simple placeholder routes for the remaining sidebar links so every
-// button in the sidebar actually navigates somewhere real.
+// System Navigation & Notifications
 Route::get('/exit', [PageController::class, 'show'])->defaults('page', 'exit')->name('exit.index');
 Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
 
-// Support System 
-Route::get('/support', [SupportTicketController::class, 'index'])->name('support.index');
-Route::get('/support/feedback/{ticket}', [SupportFeedbackController::class, 'create'])->name('support.feedback.create');
-Route::post('/support/feedback', [SupportFeedbackController::class, 'store'])->name('support.feedback.store');
+// Sales Orders
+Route::controller(SalesOrderController::class)->prefix('sales-orders')->as('sales-orders.')->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::get('/{salesOrder}', 'show')->name('show');
+    Route::put('/{salesOrder}', 'update')->name('update');
+    Route::post('/{salesOrder}/simulate-webhook', 'simulateWebhook')->name('simulate-webhook');
+});
 
-// Customers module
+// Support System 
+Route::controller(SupportTicketController::class)->prefix('support')->as('support.')->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::get('/feedback/{ticket}', [SupportFeedbackController::class, 'create'])->name('feedback.create');
+    Route::post('/feedback', [SupportFeedbackController::class, 'store'])->name('feedback.store');
+});
+
+// Customers Module
 Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
 Route::get('/purchase-history', [PurchaseHistoryController::class, 'index'])->name('purchase-history.index');
 
-// Reports
-Route::get('/reports/sales', [SalesReportController::class, 'index'])->name('reports.sales');
-Route::get('/reports/sales/export', [SalesReportController::class, 'export'])->name('reports.sales.export');
-Route::get('/reports/sales/products', [SalesReportController::class, 'productDetail'])->name('reports.sales.products');
-Route::get('/reports/sales/regional', [SalesReportController::class, 'regionalDetail'])->name('reports.sales.regional');
-Route::get('/reports/sales/representatives', [SalesReportController::class, 'repDetail'])->name('reports.sales.reps');
+// Reports Module (Explicitly matching Blade view calls: route('reports.sales'))
+Route::controller(SalesReportController::class)->prefix('reports/sales')->group(function () {
+    Route::get('/', 'index')->name('reports.sales');
+    Route::get('/export', 'export')->name('reports.sales.export');
+    Route::get('/products', 'productDetail')->name('reports.sales.products');
+    Route::get('/regional', 'regionalDetail')->name('reports.sales.regional');
+    Route::get('/representatives', 'repDetail')->name('reports.sales.reps');
+});
 
 // MCM (Marketing Campaign Management)
 Route::get('/mcm', [McmController::class, 'index'])->name('mcm.index');
-Route::get('/campaigns/create', [CampaignController::class, 'create'])->name('campaigns.create');
-Route::post('/campaigns', [CampaignController::class, 'store'])->name('campaigns.store');
-Route::get('/campaigns/{campaign}/edit', [CampaignController::class, 'edit'])->name('campaigns.edit');
-Route::put('/campaigns/{campaign}', [CampaignController::class, 'update'])->name('campaigns.update');
 
-Route::get('/workflows/create', [WorkflowController::class, 'create'])->name('workflow.create');
-Route::post('/workflows', [WorkflowController::class, 'store'])->name('workflow.store');
+Route::controller(CampaignController::class)->prefix('campaigns')->as('campaigns.')->group(function () {
+    Route::get('/create', 'create')->name('create');
+    Route::post('/', 'store')->name('store');
+    Route::get('/{campaign}/edit', 'edit')->name('edit');
+    Route::put('/{campaign}', 'update')->name('update');
+});
+
+Route::controller(WorkflowController::class)->prefix('workflows')->as('workflow.')->group(function () {
+    Route::get('/create', 'create')->name('create');
+    Route::post('/', 'store')->name('store');
+});

@@ -10,8 +10,8 @@ class CustomerController extends Controller
     public function index(Request $request)
     {
         $search = $request->query('search');
-
         $customers = Customer::query()
+            ->withCount('orders')
             ->when($search, function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
                     ->orWhere('customer_code', 'like', "%{$search}%");

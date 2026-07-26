@@ -12,9 +12,21 @@ class SalesOrder extends Model
     use HasFactory;
 
     protected $fillable = [
-        'order_no', 'customer_id', 'subtotal', 'discount_label', 'discount_amount',
-        'tax_label', 'tax_amount', 'shipping_fee', 'amount', 'status',
-        'payment_method', 'approval_status', 'warehouse_code', 'gl_code', 'order_date',
+        'order_no',
+        'customer_id',
+        'subtotal',
+        'discount_label',
+        'discount_amount',
+        'tax_label',
+        'tax_amount',
+        'shipping_fee',
+        'amount',
+        'status',
+        'payment_method',
+        'approval_status',
+        'warehouse_code',
+        'gl_code',
+        'order_date',
     ];
 
     protected $casts = [
@@ -57,5 +69,14 @@ class SalesOrder extends Model
             'debit' => 'Debit',
             default => ucfirst($this->payment_method),
         };
+    }
+    public function region(): BelongsTo
+    {
+        return $this->belongsTo(Region::class);
+    }
+
+    public function representative(): BelongsTo
+    {
+        return $this->belongsTo(Representative::class);
     }
 }
