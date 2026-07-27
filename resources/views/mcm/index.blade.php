@@ -338,13 +338,12 @@
                 
                 <div class="roi-card">
                     <div class="roi-header-row">
-                    <span>CAMPAIGN</span>
-                    <div style="display:flex; align-items:right; gap:230px;">
-                        <span style="width:100px; flex-shrink:0;"></span>
-                        <span style="width:100px; text-align:left;">ROI</span>
+                        <span>CAMPAIGN</span>
+                        <span class="roi-header-bar" aria-hidden="true"></span>
+                        <span class="roi-header-value">ROI</span>
                     </div>
-                </div>
-<div class="roi-row">
+
+                    <div class="roi-row">
                         <span class="campaign-name">Summer Sale Blast</span>
                        <div class="roi-bar-track"><div class="roi-bar-fill" data-width="85"></div></div>
                         <span class="roi-value">&#8369; 4,436.00</span>

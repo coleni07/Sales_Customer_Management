@@ -175,7 +175,7 @@
                                         :class="ticket.priority_badge" x-text="ticket.priority"></span>
                                 </td>
                                 <td class="px-5 py-4">
-                                    <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full"
+                                    <span class="inline-flex items-center whitespace-nowrap text-xs font-semibold px-3 py-1 rounded-full"
                                         :class="ticket.status_badge" x-text="ticket.status"></span>
                                 </td>
                                 <td class="px-5 py-4 text-gray-700" x-text="ticket.assigned_to"></td>
@@ -260,7 +260,7 @@
                     <p class="text-xs font-semibold text-gray-500 uppercase">Status</p>
                     <p class="mb-3">
                         <span
-                            class="inline-block text-xs font-semibold px-3 py-1 rounded-full {{ $ticket->statusBadgeClasses() }}">
+                            class="inline-flex items-center whitespace-nowrap text-xs font-semibold px-3 py-1 rounded-full {{ $ticket->statusBadgeClasses() }}">
                             {{ $ticket->statusLabel() }}
                         </span>
                     </p>
