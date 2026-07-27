@@ -131,14 +131,14 @@
                         </table>
                     </div>
 
-                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 text-sm text-slate-500">
+                    <div class="flex flex-col md:flex-row flex-wrap items-center justify-between gap-3 mt-4 text-sm text-slate-500">
                         <span class="whitespace-nowrap">
                             Showing <span x-text="filteredOrders.length === 0 ? 0 : ((page - 1) * perPage) + 1"></span> to <span
                                 x-text="Math.min(page * perPage, filteredOrders.length)"></span>
                             of <span x-text="filteredOrders.length"></span> results
                         </span>
 
-                        <div class="flex items-center gap-1" x-show="totalPages > 1">
+                        <div class="flex items-center flex-wrap justify-center gap-1" x-show="totalPages > 1">
                             <button type="button" @click="goToPage(page - 1)" :disabled="page === 1"
                                 class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">
                                 <i class="fa-solid fa-chevron-left text-xs"></i>
@@ -320,16 +320,16 @@
                 },
                 get pageNumbers() {
                     const total = this.totalPages;
-                    if (total <= 12) {
+                    if (total <= 7) {
                         return Array.from({ length: total }, (_, i) => i + 1);
                     }
 
                     const current = this.page;
-                    let start = Math.max(1, current - 4);
-                    let end = start + 9;
+                    let start = Math.max(1, current - 2);
+                    let end = start + 4;
                     if (end > total - 2) {
                         end = total - 2;
-                        start = Math.max(1, end - 9);
+                        start = Math.max(1, end - 4);
                     }
 
                     const pages = [];
