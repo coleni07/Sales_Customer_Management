@@ -114,7 +114,7 @@ class DashboardController extends Controller
         // 1 Single Query for all 12 months
         $yearlySales = SalesOrder::where('status', '!=', 'cancelled')
     ->whereYear('order_date', now()->year)
-    ->selectRaw("CAST(strftime('%m', order_date) AS INTEGER) as month_num, SUM(amount) as total")
+    ->selectRaw("MONTH(order_date) as month_num, SUM(amount) as total")
     ->groupBy('month_num')
     ->pluck('total', 'month_num');
 
